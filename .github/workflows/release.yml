@@ -1,0 +1,57 @@
+name: Release Helm Chart
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Chart.yaml'
+      - 'values.yaml'
+      - 'templates/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Package Helm chart
+        run: |
+          helm package .
+
+      - name: Checkout gh-pages branch
+        run: |
+          git checkout gh-pages
+
+      - name: Update Helm repository index
+        run: |
+          # Move the packaged chart to current directory
+          mv *.tgz .
+
+          # Update the index
+          helm repo index . --url https://mabels.github.io/unified-dns-dhcp-chart/
+
+          # Add and commit changes
+          git add *.tgz index.yaml
+          git commit -m "Update Helm repository index" || echo "No changes to commit"
+
+      - name: Push changes to gh-pages
+        run: |
+          git push origin gh-pages
