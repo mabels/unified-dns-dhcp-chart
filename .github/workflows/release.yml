@@ -34,7 +34,7 @@ jobs:
 
       - name: Package Helm chart
         run: |
-          helm package .
+          helm package . -d /tmp
 
       - name: Checkout gh-pages branch
         run: |
@@ -42,8 +42,8 @@ jobs:
 
       - name: Update Helm repository index
         run: |
-          # Move the packaged chart to current directory
-          mv *.tgz .
+          # Copy the packaged chart from /tmp
+          cp /tmp/*.tgz .
 
           # Update the index
           helm repo index . --url https://mabels.github.io/unified-dns-dhcp-chart/
