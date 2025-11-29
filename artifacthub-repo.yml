@@ -1,0 +1,5 @@
+# Artifact Hub repository metadata file
+repositoryID: unified-dns-dhcp-chart
+owners:
+  - name: Meno Abels
+    email: meno.abels@adviser.com
