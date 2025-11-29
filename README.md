@@ -23,24 +23,51 @@ Plus a central authoritative DNS server accessible via ClusterIP service for int
 
 ## Installation
 
-### 1. Create namespace
+### From Helm Repository
+
+Add the Helm repository:
+
 ```bash
+helm repo add unified-dns-dhcp https://mabels.github.io/unified-dns-dhcp-chart/
+helm repo update
+```
+
+Install the chart:
+
+```bash
+# Create namespace
 kubectl create namespace dns-dhcp
+
+# Install with default values
+helm install my-dns-dhcp unified-dns-dhcp/unified-dns-dhcp -n dns-dhcp
+
+# Install with custom values
+helm install my-dns-dhcp unified-dns-dhcp/unified-dns-dhcp \
+  -n dns-dhcp \
+  --values custom-values.yaml
 ```
 
-### 2. Install the chart
+### From Source
+
 ```bash
-helm install unified-dns-dhcp ./unified-dns-dhcp-chart -n dns-dhcp
+# Clone the repository
+git clone https://github.com/mabels/unified-dns-dhcp-chart.git
+cd unified-dns-dhcp-chart
+
+# Create namespace
+kubectl create namespace dns-dhcp
+
+# Install the chart
+helm install my-dns-dhcp . -n dns-dhcp
+
+# Upgrade with custom values
+helm upgrade my-dns-dhcp . -n dns-dhcp --values custom-values.yaml
 ```
 
-### 3. Upgrade with custom values
-```bash
-helm upgrade unified-dns-dhcp ./unified-dns-dhcp-chart -n dns-dhcp --values custom-values.yaml
-```
+### Uninstall
 
-### 4. Uninstall
 ```bash
-helm uninstall unified-dns-dhcp -n dns-dhcp
+helm uninstall my-dns-dhcp -n dns-dhcp
 ```
 
 ## Configuration
