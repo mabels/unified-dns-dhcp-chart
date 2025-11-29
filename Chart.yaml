@@ -1,6 +1,0 @@
-apiVersion: v2
-name: unified-dns-dhcp
-description: Unified DNS forwarder, authoritative DNS, and DHCP server for network segments
-type: application
-version: 1.0.0
-appVersion: "1.0"
