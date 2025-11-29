@@ -1,0 +1,19 @@
+# Patterns to ignore when building packages.
+.git/
+.gitignore
+.DS_Store
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+.project
+.idea/
+*.tmproj
+.vscode/
+
+# Python virtual environments and cache
+scripts/.venv/
+scripts/__pycache__/
+*.pyc
+*.pyo

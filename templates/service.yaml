@@ -1,0 +1,23 @@
+{{- range .Values.segments }}
+{{- if $.Values.services.dns.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unified-dns-dhcp-{{ .name }}-metrics
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: unified-dns-dhcp
+    segment: "{{ .name }}"
+spec:
+  selector:
+    app: unified-dns-dhcp
+    segment: "{{ .name }}"
+  ports:
+  - name: http
+    port: 8453
+    targetPort: 8453
+    protocol: TCP
+  type: ClusterIP
+{{- end }}
+{{- end }}

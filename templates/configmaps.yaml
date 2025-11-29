@@ -1,0 +1,376 @@
+{{- range .Values.segments }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unified-dns-dhcp-{{ .name }}-config
+  namespace: {{ $.Values.global.namespace }}
+data:
+  {{- if $.Values.services.dns.enabled }}
+  {{- if eq ($.Values.global.resolver.type | default "knot") "knot" }}
+  kresd.conf: |
+    
+    -- Load DNSSEC trust anchors
+    trust_anchors.add_file('/etc/knot-resolver/root.keys')
+    modules = {
+      'policy',
+      'hints > iterate',
+      'http',
+      'prometheus',
+    }
+    
+    -- Enable Prometheus metrics endpoint
+    http.prometheus.namespace = 'kresd'
+    
+    net.listen('{{ .ipv4.dns }}', 53, { kind = 'dns' })
+    net.listen('{{ .ipv6.dns }}', 53, { kind = 'dns' })
+    net.listen('127.0.0.1', 200, { kind = 'dns' })
+    
+    -- HTTP endpoint for metrics (on localhost only for security)
+    net.listen('::', 8453, { kind = 'webmgmt' })
+    net.listen('0.0.0.0', 8453, { kind = 'webmgmt' })
+
+    local target_ns_address = '{{ $.Values.global.authDNS.service }}@{{ $.Values.global.authDNS.port }}'
+    
+    policy.add(
+       policy.suffix(
+          policy.STUB(target_ns_address), 
+          policy.todnames({'{{ .zone.forward }}'})
+       )
+    )
+    policy.add(
+       policy.suffix(
+          policy.STUB(target_ns_address), 
+          policy.todnames({'{{ .zone.reverseV4 }}'})
+       )
+    )
+    {{- if .zone.reverseV6 }}
+    policy.add(
+       policy.suffix(
+          policy.STUB(target_ns_address), 
+          policy.todnames({'{{ .zone.reverseV6 }}'})
+       )
+    )
+    {{- end }}
+    
+    cache.size = 100 * MB
+  {{- else if eq $.Values.global.resolver.type "unbound" }}
+  unbound.conf: |
+    server:
+        # Network interfaces
+        interface: {{ .ipv4.dns }}
+        interface: {{ .ipv6.dns }}
+        interface: 127.0.0.1@200
+
+        # Access control
+        access-control: 0.0.0.0/0 allow
+        access-control: ::/0 allow
+
+        # Allow querying localhost for stub zones
+        do-not-query-localhost: no
+
+        # Disable default blocking of private address reverse zones (RFC 1918)
+        # This allows forward-zones for reverse DNS to work
+        unblock-lan-zones: yes
+        insecure-lan-zones: yes
+
+        # DNSSEC
+        auto-trust-anchor-file: "/var/lib/unbound/root.key"
+
+        # Mark local zones as insecure (no DNSSEC validation)
+        domain-insecure: "{{ .zone.forward }}"
+        domain-insecure: "{{ .zone.reverseV4 }}"
+        {{- if .zone.reverseV6 }}
+        domain-insecure: "{{ .zone.reverseV6 }}"
+        {{- end }}
+
+        # Performance
+        num-threads: 2
+        msg-cache-size: 50m
+        rrset-cache-size: 100m
+        cache-min-ttl: 60
+        cache-max-ttl: 86400
+
+        # Privacy
+        hide-identity: yes
+        hide-version: yes
+
+        # Logging
+        verbosity: 1
+        logfile: ""
+
+        # Fix buffer warnings - use system defaults
+        so-sndbuf: 0
+        so-rcvbuf: 0
+
+        # Statistics (without remote-control)
+        statistics-interval: 0
+        extended-statistics: no
+        statistics-cumulative: no
+
+    # Remote control disabled (requires SSL certs)
+    remote-control:
+        control-enable: no
+
+    # Forward zones for local authoritative DNS (using forward instead of stub for better local zone handling)
+    forward-zone:
+        name: "{{ .zone.forward }}"
+        forward-addr: {{ $.Values.global.authDNS.service }}@{{ $.Values.global.authDNS.port }}
+
+    forward-zone:
+        name: "{{ .zone.reverseV4 }}"
+        forward-addr: {{ $.Values.global.authDNS.service }}@{{ $.Values.global.authDNS.port }}
+
+    {{- if .zone.reverseV6 }}
+    forward-zone:
+        name: "{{ .zone.reverseV6 }}"
+        forward-addr: {{ $.Values.global.authDNS.service }}@{{ $.Values.global.authDNS.port }}
+    {{- end }}
+
+    {{- if $.Values.global.upstreamDNS }}
+    # Forward all other queries to upstream DNS
+    forward-zone:
+        name: "."
+        {{- range $.Values.global.upstreamDNS }}
+        forward-addr: {{ . }}
+        {{- end }}
+    {{- end }}
+  {{- end }}
+
+  knot.conf: |
+    server:
+      listen: "127.0.0.1@5353"
+      listen: "::1@5353"
+
+    log:
+      - target: stdout
+        any: info
+
+    database:
+      storage: "/var/lib/knot/zones"
+
+    control:
+      listen: knot.sock
+    
+    key:
+      - id: {{ $.Values.global.ddns.keyName }}
+        algorithm: hmac-sha256
+        secret: {{ $.Values.global.ddns.key | quote }}
+    
+    acl:
+      - id: ddns_acl
+        address: ["127.0.0.1"]
+        action: update
+        key: {{ $.Values.global.ddns.keyName }}
+    
+    zone:
+      - domain: {{ .zone.forward  | quote }}
+        storage: "/var/lib/knot/zones"
+        file: "{{ .zone.forward }}.zone"
+        acl: ddns_acl
+        journal-content: all
+        zonefile-sync: 0
+        zonefile-load: difference
+
+      - domain: {{ .zone.reverseV4 | quote  }}
+        storage: "/var/lib/knot/zones"
+        file: "{{ .zone.reverseV4 }}.zone"
+        acl: ddns_acl
+        journal-content: all
+        zonefile-sync: 0
+        zonefile-load: difference
+      {{- if .zone.reverseV6 }}
+
+      - domain: {{ .zone.reverseV6 | quote  }}
+        storage: "/var/lib/knot/zones"
+        file: "{{ .zone.reverseV6 }}.zone"
+        acl: ddns_acl
+        journal-content: all
+        zonefile-sync: 0
+        zonefile-load: difference
+      {{- end }}
+
+  {{ .zone.forward }}.zone: |
+    $ORIGIN {{ .zone.forward }}.
+    $TTL 3600
+    @   IN  SOA ns1.{{ .zone.forward }}. admin.{{ .zone.forward }}. (
+                2025111401  ; Serial
+                3600        ; Refresh
+                1800        ; Retry
+                604800      ; Expire
+                86400 )     ; Minimum TTL
+    @   IN  NS  ns1.{{ .zone.forward }}.
+    ns1 IN  A   {{ .ipv4.dns }}
+    {{- range .staticRecords }}
+    {{ . }}
+    {{- end }}
+
+  {{ .zone.reverseV4 }}.zone: |
+    $ORIGIN {{ .zone.reverseV4 }}.
+    $TTL 3600
+    @   IN  SOA ns1.{{ .zone.forward }}. admin.{{ .zone.forward }}. (
+                2025111401  ; Serial
+                3600        ; Refresh
+                1800        ; Retry
+                604800      ; Expire
+                86400 )     ; Minimum TTL
+    @   IN  NS  ns1.{{ .zone.forward }}.
+    {{- $forwardZone := .zone.forward }}
+    {{- $reverseZone := .zone.reverseV4 }}
+    {{- range .staticRecords }}
+    {{- if contains " IN A " . }}
+    {{ include "dns.to.reverse" (dict "record" . "zone" $forwardZone "reverseZone" $reverseZone) -}}
+    {{- end }}
+    {{- end }}
+  {{- if .zone.reverseV6 }}
+
+  {{ .zone.reverseV6 }}.zone: |
+    $ORIGIN {{ .zone.reverseV6 }}.
+    $TTL 3600
+    @   IN  SOA ns1.{{ .zone.forward }}. admin.{{ .zone.forward }}. (
+                2025111401  ; Serial
+                3600        ; Refresh
+                1800        ; Retry
+                604800      ; Expire
+                86400 )     ; Minimum TTL
+    @   IN  NS  ns1.{{ .zone.forward }}.
+    {{- $forwardZone := .zone.forward }}
+    {{- $reverseZone := .zone.reverseV6 }}
+    {{- range .staticRecords }}
+    {{- if contains " IN AAAA " . }}
+    {{ include "dns.to.reverse" (dict "record" . "zone" $forwardZone "reverseZone" $reverseZone) -}}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- if $.Values.services.dhcp.enabled }}
+  kea-dhcp4.conf: |
+    {
+      "Dhcp4": {
+        "interfaces-config": {
+          "interfaces": ["net1"]
+        },
+        "control-socket": {
+          "socket-type": "unix",
+          "socket-name": "/var/run/kea/kea4-ctrl-socket"
+        },
+        "lease-database": {
+          "type": "memfile",
+          "persist": true,
+          "name": "/var/lib/kea/dhcp4.leases"
+        },
+        "valid-lifetime": 3600,
+        "subnet4": [{
+          "id": {{ .name }},
+          "subnet": "{{ .ipv4.subnet }}",
+          "pools": [{
+            "pool": "{{ .ipv4.range.start }} - {{ .ipv4.range.end }}"
+          }],
+          {{- if .staticLeases }}
+          "reservations": [
+            {{- $segmentStaticLeases := .staticLeases }}
+            {{- range $index, $lease := $segmentStaticLeases }}
+            {
+              "hw-address": "{{ $lease.macAddress }}",
+              "ip-address": "{{ $lease.address }}"
+              {{- if $lease.hostname }},
+              "hostname": "{{ $lease.hostname }}"
+              {{- end }}
+              {{- if $lease.clientId }},
+              "client-id": "{{ $lease.clientId }}"
+              {{- end }}
+            }{{ if ne (len $segmentStaticLeases) (add $index 1) }},{{ end }}
+            {{- end }}
+          ],
+          {{- end }}
+          "option-data": [
+            {
+              "name": "routers",
+              "data": "{{ .ipv4.gateway }}"
+            },
+            {
+              "name": "domain-name-servers",
+              "data": "{{ .ipv4.dns }}"
+            },
+            {
+              "name": "domain-name",
+              "data": "{{ .zone.forward }}"
+            }
+          ],
+          "ddns-qualifying-suffix": "{{ .zone.forward }}",
+          "ddns-send-updates": true,
+          "ddns-override-no-update": true,
+          "ddns-override-client-update": true,
+          "ddns-replace-client-name": "when-not-present",
+          "ddns-generated-prefix": "myhost",
+          "hostname-char-set": "[^A-Za-z0-9.-]",
+          "hostname-char-replacement": "-"
+        }],
+        "dhcp-ddns": {
+          "enable-updates": true,
+          "server-ip": "127.0.0.1",
+          "server-port": 53001,
+          "sender-ip": "",
+          "sender-port": 0,
+          "max-queue-size": 1024,
+          "ncr-protocol": "UDP",
+          "ncr-format": "JSON"
+        },
+        "loggers": [{
+          "name": "kea-dhcp4",
+          "output_options": [{
+            "output": "stdout"
+          }],
+          "severity": "INFO",
+          "debuglevel": 0
+        }]
+      }
+    }
+
+  kea-dhcp-ddns.conf: |
+    {
+      "DhcpDdns": {
+        "ip-address": "127.0.0.1",
+        "port": 53001,
+        "dns-server-timeout": 1000,
+        "ncr-protocol": "UDP",
+        "ncr-format": "JSON",
+        "forward-ddns": {
+          "ddns-domains": [{
+            "name": "{{ .zone.forward }}.",
+            "key-name": "{{ $.Values.global.ddns.keyName }}",
+            "dns-servers": [{
+              "hostname": "",
+              "ip-address": "127.0.0.1",
+              "port": 5353
+            }]
+          }]
+        },
+        "reverse-ddns": {
+          "ddns-domains": [{
+            "name": "{{ .zone.reverseV4 }}.",
+            "key-name": "{{ $.Values.global.ddns.keyName }}",
+            "dns-servers": [{
+              "hostname": "",
+              "ip-address": "127.0.0.1",
+              "port": 5353
+            }]
+          }]
+        },
+        "tsig-keys": [{
+          "name": "{{ $.Values.global.ddns.keyName }}",
+          "algorithm": "hmac-sha256",
+          "secret": "{{ $.Values.global.ddns.key }}"
+        }],
+        "loggers": [{
+          "name": "kea-dhcp-ddns",
+          "output_options": [{
+            "output": "stdout"
+          }],
+          "severity": "DEBUG",
+          "debuglevel": 0
+        }]
+      }
+    }
+  {{- end }}
+{{- end }}
