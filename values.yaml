@@ -77,8 +77,8 @@ global:
   images:
     unbound: "crazymax/unbound:latest"
     knotAuth: "cznic/knot:latest"
-    keaDhcp: "docker.cloudsmith.io/isc/docker/kea-dhcp4:latest"
-    keaDdns: "docker.cloudsmith.io/isc/docker/kea-dhcp-ddns:latest"
+    keaDhcp: "ghcr.io/mabels/kea-dhcp-dns:latest"
+    keaDdns: "ghcr.io/mabels/kea-dhcp-dns:latest"
 
   # Storage configuration
   storage:
