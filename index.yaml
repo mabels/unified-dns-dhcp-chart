@@ -3,7 +3,18 @@ entries:
   unified-dns-dhcp:
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-03T08:34:00.140830551Z"
+    created: "2025-12-05T20:53:05.577432405Z"
+    description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
+      segments
+    digest: 209c85ff3d0be4a97f498a650315e93b12b0444721af4a94e661c90bc49130e0
+    name: unified-dns-dhcp
+    type: application
+    urls:
+    - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-1.0.2.tgz
+    version: 1.0.2
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2025-12-05T20:53:05.576739907Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 849702a7f7464ef05dbc5f141d4410e30b844f69fd01be49742ffbf5ba2376ad
@@ -14,7 +25,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-03T08:34:00.139502264Z"
+    created: "2025-12-05T20:53:05.576044343Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 63b9ed133a971156a77dfdc323935ace7074c0fc03bac45487b6d5edc8cd2ca5
@@ -23,4 +34,4 @@ entries:
     urls:
     - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-1.0.0.tgz
     version: 1.0.0
-generated: "2025-12-03T08:34:00.138791212Z"
+generated: "2025-12-05T20:53:05.575210041Z"
