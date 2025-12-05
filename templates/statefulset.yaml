@@ -71,14 +71,6 @@ spec:
           mountPath: /var/lib/unbound
       {{- end }}
       {{- end }}
-      {{- if $.Values.services.dhcp.enabled }}
-      - name: init-kea-dirs
-        image: busybox
-        command: ['sh', '-c', 'mkdir -p /var/run/kea && chmod 750 /var/run/kea']
-        volumeMounts:
-        - name: kea-run
-          mountPath: /var/run/kea
-      {{- end }}
       containers:
       {{- if $.Values.services.dns.enabled }}
       {{- if eq ($.Values.global.resolver.type | default "knot") "knot" }}
@@ -159,8 +151,6 @@ spec:
           subPath: kea-dhcp4.conf
         - name: kea-leases
           mountPath: /var/lib/kea
-        - name: kea-run
-          mountPath: /var/run/kea
       
       - name: kea-ddns
         image: {{ $.Values.global.images.keaDdns }}
@@ -177,10 +167,6 @@ spec:
           name: unified-dns-dhcp-{{ .name }}-config
       {{- if and $.Values.services.dns.enabled (eq ($.Values.global.resolver.type | default "knot") "unbound") }}
       - name: unbound-data
-        emptyDir: {}
-      {{- end }}
-      {{- if $.Values.services.dhcp.enabled }}
-      - name: kea-run
         emptyDir: {}
       {{- end }}
   volumeClaimTemplates:
