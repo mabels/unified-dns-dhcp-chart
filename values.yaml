@@ -1,91 +1,149 @@
-# Default values for unified-dns-dhcp
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# Global configuration
+global:
+  namespace: dns-dhcp
 
-# Service-specific configurations
+  # Image pull secrets for private registries (e.g., GitHub Container Registry)
+  # Create secret: kubectl create secret docker-registry ghcr-token \
+  #   --docker-server=ghcr.io \
+  #   --docker-username=YOUR_USERNAME \
+  #   --docker-password=YOUR_GITHUB_TOKEN \
+  #   --docker-email=YOUR_EMAIL \
+  #   -n dns-dhcp
+  imagePullSecrets: []
+  # imagePullSecrets:
+  #   - name: ghcr-token
+  
+  # Storage configuration
+  storage:
+    className: "local-path"
+  
+  # Recursive resolver (always runs if DNS enabled)
+  resolver:
+    type: unbound
+  
+  # Authoritative DNS for local zones
+  authDNS:
+    type: bind  # "bind" or "knot"
+    service: 127.0.0.1
+    port: 5353
+  
+  # Container images
+  images:
+    unbound: crazymax/unbound:latest
+    bind: internetsystemsconsortium/bind9:latest
+    knot: cznic/knot:latest
+    keaDhcp: ghcr.io/mabels/kea-dhcp-dns:latest
+    keaDdns: ghcr.io/mabels/kea-dhcp-dns:latest
+    storkServer: ghcr.io/mabels/kea-dhcp-dns/stork-server:latest
+    storkAgent: ghcr.io/mabels/kea-dhcp-dns/stork-agent:latest
+
+# Service toggles (per segment)
 services:
   dns:
     enabled: true
   dhcp:
     enabled: true
 
-# Network segments configuration
-# Each segment represents an isolated network with its own DNS and DHCP services
-segments:
-  - name: "100"
-    displayName: "example-network"
-    ipv4:
-      subnet: "192.168.100.0/24"
-      gateway: "192.168.100.1"
-      dns: "192.168.100.5"      # DNS server IP
-      dhcp: "192.168.100.5"     # DHCP server IP (usually same as DNS)
-      range:
-        start: "192.168.100.50"
-        end: "192.168.100.200"
-    ipv6:
-      subnet: "fd00:192:168:100::/64"
-      dns: "fd00:192:168:100::5"
-      dhcp: "fd00:192:168:100::5"
-    network:
-      # Network attachment definition (Multus)
-      # Examples: "eth1", "vlan.100", "br-lan"
-      attachment: "vlan.100"
-    zone:
-      forward: "example.local"
-      reverseV4: "100.168.192.in-addr.arpa"
-      reverseV6: "0.0.1.0.8.6.1.0.2.9.1.0.0.0.d.f.ip6.arpa"
-    # Optional: Static DNS records
-    staticRecords:
-      - "gateway IN A 192.168.100.1"
-      - "gateway IN AAAA fd00:192:168:100::1"
-      - "dns IN A 192.168.100.5"
-      - "dns IN AAAA fd00:192:168:100::5"
-    # Optional: Static DHCP reservations
-    staticLeases:
-      - macAddress: "aa:bb:cc:dd:ee:ff"
-        address: "192.168.100.10"
-        hostname: "server.example.local"
-
-# Global configuration
-global:
-  namespace: "dns-dhcp"
-
-  # DNS resolver type: "unbound" or "knot-resolver"
-  resolver:
-    type: unbound
-
-  # Upstream DNS servers (for recursive resolution)
-  # Comment out to use root servers
-  upstreamDNS:
-  #  - "8.8.8.8"
-  #  - "1.1.1.1"
-  #  - "2001:4860:4860::8888"
-  #  - "2001:4860:4860::8844"
-
-  # Authoritative DNS service configuration (internal)
-  authDNS:
-    service: "127.0.0.1"  # Service name or IP
-    port: 5353
-
-  # Dynamic DNS (DDNS) configuration
-  ddns:
-    # Generate a TSIG key with: tsig-keygen -a hmac-sha256 ddns_key
-    key: "CHANGE_ME_GENERATE_YOUR_OWN_KEY"
-    keyName: "ddns_key"
-
-  # Container images
-  images:
-    unbound: "crazymax/unbound:latest"
-    knotAuth: "cznic/knot:latest"
-    keaDhcp: "ghcr.io/mabels/kea-dhcp-dns:latest"
-    keaDdns: "ghcr.io/mabels/kea-dhcp-dns:latest"
-
-  # Storage configuration
-  storage:
-    className: "local-path"  # Storage class for PVCs
-    reclaimPolicy: "Retain"  # "Retain" or "Delete"
-
-# Zone storage PVC configuration
-zoneStorage:
+# Stork monitoring configuration
+stork:
   enabled: true
-  size: "1Gi"
+  
+  # Stork Server (central monitoring UI)
+  # Deploy this ONCE separately with segments: []
+  server:
+    enabled: false  # Enable only for server deployment
+    replicas: 1
+    port: 8080
+    
+    # PostgreSQL database connection
+    database:
+      host: postgresql.postgresql.svc.cluster.local
+      port: 5432
+      name: stork
+      user: stork_user
+      # Password from secret
+      passwordSecret:
+        name: stork-db-credentials
+        key: password
+    
+    resources:
+      requests:
+        memory: 128Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+  
+  # Ingress for Stork Server Web UI
+  ingress:
+    enabled: false  # Enable for server deployment
+    className: ""   # e.g., "nginx" or "traefik"
+    
+    # Hosts for the ingress
+    hosts:
+      - stork.example.com
+    
+    # Annotations (e.g., for cert-manager)
+    annotations:
+      # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+      # external-dns.alpha.kubernetes.io/hostname: "stork.example.com"
+    
+    # TLS configuration
+    tls:
+      enabled: true
+      # Certificate secrets are auto-generated from hostnames
+      # Format: hostname with dots replaced by dashes
+      # Example: stork.example.com -> stork-example-com
+    
+    # Path configuration
+    path: /
+    pathType: Prefix
+  
+  # Stork Agent (runs as sidecar in each segment pod)
+  # This is the default for all segments
+  agent:
+    enabled: true  # Default: enable for all segments
+    
+    resources:
+      requests:
+        memory: 64Mi
+        cpu: 50m
+      limits:
+        memory: 256Mi
+        cpu: 200m
+
+# Network segments
+# Each segment gets its own StatefulSet with DNS/DHCP services
+# Leave empty (segments: []) when deploying only Stork Server
+segments:
+  - name: "128"
+    domain: seg128.local
+    
+    # IPv4 configuration
+    ipv4:
+      network: 192.168.128.0/24
+      dns: 192.168.128.5
+      dhcp: 192.168.128.5
+      gateway: 192.168.128.1
+      dhcpRange:
+        start: 192.168.128.100
+        end: 192.168.128.200
+    
+    # IPv6 configuration  
+    ipv6:
+      network: fd00:128::/64
+      dns: fd00:128::5
+      dhcp: fd00:128::5
+      gateway: fd00:128::1
+      dhcpRange:
+        start: fd00:128::1000
+        end: fd00:128::2000
+    
+    # Upstream DNS servers
+    upstream:
+      - 1.1.1.1
+      - 8.8.8.8
+    
+    # Optional: Override Stork Agent for this segment
+    # storkAgent:
+    #   enabled: false  # Disable agent for this specific segment

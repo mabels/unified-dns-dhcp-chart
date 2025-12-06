@@ -1,0 +1,84 @@
+# Segment Deployment Example
+# Deploy this MULTIPLE TIMES - once per network segment
+# Each segment gets DNS/DHCP services + Stork Agent sidecar
+#
+# Usage:
+#   helm upgrade --install segment-128 . \
+#     --namespace dns-dhcp \
+#     --kube-context mam-hh-dns1 \
+#     --values values-segment-128.yaml
+
+global:
+  namespace: dns-dhcp
+  
+  storage:
+    className: "local-path"
+  
+  resolver:
+    type: unbound
+  
+  authDNS:
+    type: bind  # or "knot"
+    service: 127.0.0.1
+    port: 5353
+  
+  images:
+    unbound: crazymax/unbound:latest
+    bind: internetsystemsconsortium/bind9:latest
+    knot: cznic/knot:latest
+    keaDhcp: ghcr.io/mabels/kea-dhcp-dns:latest
+    keaDdns: ghcr.io/mabels/kea-dhcp-dns:latest
+    storkAgent: cloudsmith.io/isc/stork/isc-stork-agent:latest
+
+services:
+  dns:
+    enabled: true
+  dhcp:
+    enabled: true
+
+stork:
+  enabled: true
+  
+  # Server is NOT deployed with segments
+  server:
+    enabled: false
+    # Server URL for agent to connect to
+    port: 8080
+  
+  # Agent runs as sidecar in segment pods
+  agent:
+    enabled: true
+    resources:
+      requests:
+        memory: 64Mi
+        cpu: 50m
+      limits:
+        memory: 256Mi
+        cpu: 200m
+
+# Define ONE segment per deployment
+segments:
+  - name: "128"
+    domain: seg128.local
+    
+    ipv4:
+      network: 192.168.128.0/24
+      dns: 192.168.128.5
+      dhcp: 192.168.128.5
+      gateway: 192.168.128.1
+      dhcpRange:
+        start: 192.168.128.100
+        end: 192.168.128.200
+    
+    ipv6:
+      network: fd00:128::/64
+      dns: fd00:128::5
+      dhcp: fd00:128::5
+      gateway: fd00:128::1
+      dhcpRange:
+        start: fd00:128::1000
+        end: fd00:128::2000
+    
+    upstream:
+      - 1.1.1.1
+      - 8.8.8.8

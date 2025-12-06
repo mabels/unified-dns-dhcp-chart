@@ -1,0 +1,94 @@
+{{- if .Values.stork.enabled }}
+{{- if .Values.stork.server.enabled }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.stork.server.database.passwordSecret.name }}
+  namespace: {{ .Values.global.namespace }}
+type: Opaque
+stringData:
+  # CHANGE THIS PASSWORD!
+  # Should match the password used when creating the database
+  password: "CHANGE_ME_STORK_DB_PASSWORD"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stork-server
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: stork-server
+spec:
+  replicas: {{ .Values.stork.server.replicas }}
+  selector:
+    matchLabels:
+      app: stork-server
+  template:
+    metadata:
+      labels:
+        app: stork-server
+    spec:
+      containers:
+      - name: stork-server
+        image: {{ .Values.global.images.storkServer }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: {{ .Values.stork.server.port }}
+          name: http
+          protocol: TCP
+        env:
+        - name: STORK_DATABASE_HOST
+          value: {{ .Values.stork.server.database.host | quote }}
+        - name: STORK_DATABASE_PORT
+          value: {{ .Values.stork.server.database.port | quote }}
+        - name: STORK_DATABASE_NAME
+          value: {{ .Values.stork.server.database.name | quote }}
+        - name: STORK_DATABASE_USER_NAME
+          value: {{ .Values.stork.server.database.user | quote }}
+        - name: STORK_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.stork.server.database.passwordSecret.name }}
+              key: {{ .Values.stork.server.database.passwordSecret.key }}
+        - name: STORK_REST_HOST
+          value: "0.0.0.0"
+        - name: STORK_REST_PORT
+          value: {{ .Values.stork.server.port | quote }}
+        livenessProbe:
+          httpGet:
+            path: /api/version
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        readinessProbe:
+          httpGet:
+            path: /api/version
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          {{- toYaml .Values.stork.server.resources | nindent 10 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stork-server
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: stork-server
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.stork.server.port }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: stork-server
+{{- end }}
+{{- end }}

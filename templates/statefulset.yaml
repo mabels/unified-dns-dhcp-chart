@@ -28,6 +28,10 @@ spec:
               "ips": ["{{ .ipv4.dhcp }}/24", "{{ .ipv6.dhcp }}/64"]
             }
           ]
+      {{- if $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
     spec:
       initContainers:
       # Fix routing: set higher metric on eth0 so net1 is always preferred
