@@ -137,8 +137,7 @@ data:
     {{- end }}
   {{- end }}
 
-  knot.conf: |
-  
+  {{- if eq ($.Values.global.authDNS.type | default "knot") "bind" }}
   bind.conf: |
     options {
       directory "/var/lib/bind/zones";
@@ -155,25 +154,26 @@ data:
     };
     
     zone "{{ .zone.forward }}" {
-      type master;
+      type primary;
       file "{{ .zone.forward }}.zone";
       allow-update { key "{{ $.Values.global.ddns.keyName }}"; };
     };
     
     zone "{{ .zone.reverseV4 }}" {
-      type master;
+      type primary;
       file "{{ .zone.reverseV4 }}.zone";
       allow-update { key "{{ $.Values.global.ddns.keyName }}"; };
     };
     {{- if .zone.reverseV6 }}
     
     zone "{{ .zone.reverseV6 }}" {
-      type master;
+      type primary;
       file "{{ .zone.reverseV6 }}.zone";
       allow-update { key "{{ $.Values.global.ddns.keyName }}"; };
     };
     {{- end }}
-
+  {{- else }}
+  knot.conf: |
     server:
       listen: "127.0.0.1@5353"
       listen: "::1@5353"
@@ -216,6 +216,16 @@ data:
         zonefile-sync: 0
         zonefile-load: difference
       {{- if .zone.reverseV6 }}
+
+      - domain: {{ .zone.reverseV6 | quote  }}
+        storage: "/var/lib/knot/zones"
+        file: "{{ .zone.reverseV6 }}.zone"
+        acl: ddns_acl
+        journal-content: all
+        zonefile-sync: 0
+        zonefile-load: difference
+      {{- end }}
+  {{- end }}
 
       - domain: {{ .zone.reverseV6 | quote  }}
         storage: "/var/lib/knot/zones"
