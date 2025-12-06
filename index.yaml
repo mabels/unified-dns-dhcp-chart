@@ -3,7 +3,33 @@ entries:
   unified-dns-dhcp:
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-05T20:53:05.577432405Z"
+    created: "2025-12-06T21:44:46.295306295Z"
+    description: Unified DNS and DHCP services for Kubernetes network segments with
+      Stork monitoring
+    digest: cb94cbf864b04d913f580a4325d5b90de7868fb7a6079fe81dffeb955cae2c3c
+    home: https://github.com/mabels/unified-dns-dhcp-chart
+    keywords:
+    - dns
+    - dhcp
+    - kea
+    - bind
+    - knot
+    - unbound
+    - stork
+    - networking
+    maintainers:
+    - email: meno.abels@adviser.com
+      name: Meno Abels
+    name: unified-dns-dhcp
+    sources:
+    - https://github.com/mabels/unified-dns-dhcp-chart
+    type: application
+    urls:
+    - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-1.1.0.tgz
+    version: 1.1.0
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2025-12-06T21:44:46.294235771Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 209c85ff3d0be4a97f498a650315e93b12b0444721af4a94e661c90bc49130e0
@@ -14,7 +40,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-05T20:53:05.576739907Z"
+    created: "2025-12-06T21:44:46.293600973Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 849702a7f7464ef05dbc5f141d4410e30b844f69fd01be49742ffbf5ba2376ad
@@ -25,7 +51,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-05T20:53:05.576044343Z"
+    created: "2025-12-06T21:44:46.292989218Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 63b9ed133a971156a77dfdc323935ace7074c0fc03bac45487b6d5edc8cd2ca5
@@ -34,4 +60,4 @@ entries:
     urls:
     - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-1.0.0.tgz
     version: 1.0.0
-generated: "2025-12-05T20:53:05.575210041Z"
+generated: "2025-12-06T21:44:46.292180424Z"
