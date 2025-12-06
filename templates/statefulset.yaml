@@ -44,6 +44,8 @@ spec:
           ip route del default via 10.42.0.1 dev eth0 || true
           # Re-add it with a higher metric (100) so it's only used as backup
           ip route add default via 10.42.0.1 dev eth0 metric 100
+          # Add route for Kubernetes Service CIDR (for Stork Server, etc)
+          ip route add 10.43.0.0/16 via 10.42.0.1 dev eth0 || true
           echo "Routes configured:"
           ip route
         securityContext:
