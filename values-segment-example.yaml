@@ -86,3 +86,9 @@ segments:
     upstream:
       - 1.1.1.1
       - 8.8.8.8
+
+  # Network configuration (adjust for your cluster)
+  network:
+    podCIDR: "10.42.0.0/16"
+    serviceCIDR: "10.43.0.0/16"
+    podGateway: "10.42.0.1"

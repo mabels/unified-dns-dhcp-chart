@@ -41,11 +41,11 @@ spec:
         args:
         - |
           # Remove the default route via eth0
-          ip route del default via 10.42.0.1 dev eth0 || true
+          ip route del default via {{ $.Values.network.podGateway }} dev eth0 || true
           # Re-add it with a higher metric (100) so it's only used as backup
-          ip route add default via 10.42.0.1 dev eth0 metric 100
+          ip route add default via {{ $.Values.network.podGateway }} dev eth0 metric 100
           # Add route for Kubernetes Service CIDR (for Stork Server, etc)
-          ip route add 10.43.0.0/16 via 10.42.0.1 dev eth0 || true
+          ip route add {{ $.Values.network.serviceCIDR }} via {{ $.Values.network.podGateway }} dev eth0 || true
           echo "Routes configured:"
           ip route
         securityContext:

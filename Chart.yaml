@@ -2,7 +2,7 @@ apiVersion: v2
 name: unified-dns-dhcp
 description: Unified DNS and DHCP services for Kubernetes network segments with Stork monitoring
 type: application
-version: 1.1.4
+version: 1.1.5
 appVersion: "1.1"
 keywords:
   - dns

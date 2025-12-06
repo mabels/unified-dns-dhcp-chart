@@ -147,3 +147,23 @@ segments:
     # Optional: Override Stork Agent for this segment
     # storkAgent:
     #   enabled: false  # Disable agent for this specific segment
+
+
+# Network configuration for routing
+# These values depend on your Kubernetes cluster configuration
+network:
+  # Pod CIDR - pods are assigned IPs from this range
+  # K3s default: 10.42.0.0/16
+  # kubeadm default: 10.244.0.0/16
+  # GKE: 10.0.0.0/14
+  podCIDR: "10.42.0.0/16"
+  
+  # Service CIDR - cluster services get IPs from this range
+  # K3s default: 10.43.0.0/16
+  # kubeadm default: 10.96.0.0/12
+  # GKE: 10.4.0.0/14
+  serviceCIDR: "10.43.0.0/16"
+  
+  # Pod network gateway - first IP in the pod network
+  # Usually .1 of the pod network
+  podGateway: "10.42.0.1"
