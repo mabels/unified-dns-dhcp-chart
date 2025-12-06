@@ -170,6 +170,10 @@ spec:
       - name: stork-agent
         image: {{ $.Values.global.images.storkAgent }}
         env:
+        - name: STORK_AGENT_HOST
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         - name: STORK_AGENT_SERVER_URL
           value: {{ $.Values.stork.agent.serverUrl | quote }}
         - name: STORK_AGENT_PORT
