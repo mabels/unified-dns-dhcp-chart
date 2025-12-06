@@ -28,7 +28,7 @@ global:
   
   images:
     unbound: crazymax/unbound:latest
-    bind: internetsystemsconsortium/bind9:latest
+    bind: ghcr.io/mabels/kea-dhcp-dns/bind9:latest
     knot: cznic/knot:latest
     keaDhcp: ghcr.io/mabels/kea-dhcp-dns/kea-dhcp4:latest
     keaDdns: ghcr.io/mabels/kea-dhcp-dns/kea-dhcp-ddns:latest
