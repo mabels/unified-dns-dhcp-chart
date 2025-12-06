@@ -3,7 +3,33 @@ entries:
   unified-dns-dhcp:
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2025-12-06T22:05:45.424844097Z"
+    created: "2025-12-06T22:10:34.497224321Z"
+    description: Unified DNS and DHCP services for Kubernetes network segments with
+      Stork monitoring
+    digest: 5abd4e2f26d4a466ea1609455b8ab09ec6168c0fa71a9e126ec3aa0f63b1f173
+    home: https://github.com/mabels/unified-dns-dhcp-chart
+    keywords:
+    - dns
+    - dhcp
+    - kea
+    - bind
+    - knot
+    - unbound
+    - stork
+    - networking
+    maintainers:
+    - email: meno.abels@adviser.com
+      name: Meno Abels
+    name: unified-dns-dhcp
+    sources:
+    - https://github.com/mabels/unified-dns-dhcp-chart
+    type: application
+    urls:
+    - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-1.1.3.tgz
+    version: 1.1.3
+  - apiVersion: v2
+    appVersion: "1.1"
+    created: "2025-12-06T22:10:34.496216006Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 56fe4d6df83bd21f3fc9f3f332f3dfaf5e1810d1a14b30504faf74727ac64012
@@ -29,7 +55,7 @@ entries:
     version: 1.1.2
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2025-12-06T22:05:45.423817253Z"
+    created: "2025-12-06T22:10:34.495144754Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: adf18ad780f14c84ccfd78f71aaced6e9b67f99e3d94931290cf53f05d8b3b84
@@ -55,7 +81,7 @@ entries:
     version: 1.1.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-06T22:05:45.422747116Z"
+    created: "2025-12-06T22:10:34.494112244Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: cb94cbf864b04d913f580a4325d5b90de7868fb7a6079fe81dffeb955cae2c3c
@@ -81,7 +107,7 @@ entries:
     version: 1.1.0
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-06T22:05:45.42079194Z"
+    created: "2025-12-06T22:10:34.492182006Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 209c85ff3d0be4a97f498a650315e93b12b0444721af4a94e661c90bc49130e0
@@ -92,7 +118,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-06T22:05:45.420208627Z"
+    created: "2025-12-06T22:10:34.491596181Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 849702a7f7464ef05dbc5f141d4410e30b844f69fd01be49742ffbf5ba2376ad
@@ -103,7 +129,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-06T22:05:45.419615325Z"
+    created: "2025-12-06T22:10:34.49098587Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 63b9ed133a971156a77dfdc323935ace7074c0fc03bac45487b6d5edc8cd2ca5
@@ -112,4 +138,4 @@ entries:
     urls:
     - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-1.0.0.tgz
     version: 1.0.0
-generated: "2025-12-06T22:05:45.418936102Z"
+generated: "2025-12-06T22:10:34.490299316Z"
