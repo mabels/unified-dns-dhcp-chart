@@ -138,6 +138,42 @@ data:
   {{- end }}
 
   knot.conf: |
+  
+  bind.conf: |
+    options {
+      directory "/var/lib/bind/zones";
+      listen-on port {{ $.Values.global.authDNS.port }} { any; };
+      listen-on-v6 port {{ $.Values.global.authDNS.port }} { any; };
+      allow-query { any; };
+      recursion no;
+      dnssec-validation no;
+    };
+    
+    key "{{ $.Values.global.ddns.keyName }}" {
+      algorithm hmac-sha256;
+      secret "{{ $.Values.global.ddns.key }}";
+    };
+    
+    zone "{{ .zone.forward }}" {
+      type master;
+      file "{{ .zone.forward }}.zone";
+      allow-update { key "{{ $.Values.global.ddns.keyName }}"; };
+    };
+    
+    zone "{{ .zone.reverseV4 }}" {
+      type master;
+      file "{{ .zone.reverseV4 }}.zone";
+      allow-update { key "{{ $.Values.global.ddns.keyName }}"; };
+    };
+    {{- if .zone.reverseV6 }}
+    
+    zone "{{ .zone.reverseV6 }}" {
+      type master;
+      file "{{ .zone.reverseV6 }}.zone";
+      allow-update { key "{{ $.Values.global.ddns.keyName }}"; };
+    };
+    {{- end }}
+
     server:
       listen: "127.0.0.1@5353"
       listen: "::1@5353"
