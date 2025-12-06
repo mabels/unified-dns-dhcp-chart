@@ -10,6 +10,10 @@
 
 global:
   namespace: dns-dhcp
+
+  # If using private registries (GHCR), add imagePullSecrets
+  imagePullSecrets:
+    - name: ghcr-token
   
   storage:
     className: "local-path"
@@ -26,9 +30,9 @@ global:
     unbound: crazymax/unbound:latest
     bind: internetsystemsconsortium/bind9:latest
     knot: cznic/knot:latest
-    keaDhcp: ghcr.io/mabels/kea-dhcp-dns:latest
-    keaDdns: ghcr.io/mabels/kea-dhcp-dns:latest
-    storkAgent: cloudsmith.io/isc/stork/isc-stork-agent:latest
+    keaDhcp: ghcr.io/mabels/kea-dhcp-dns/kea-dhcp4:latest
+    keaDdns: ghcr.io/mabels/kea-dhcp-dns/kea-dhcp-ddns:latest
+    storkAgent: ghcr.io/mabels/kea-dhcp-dns/stork-agent:latest
 
 services:
   dns:
