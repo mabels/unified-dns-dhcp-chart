@@ -125,6 +125,27 @@ spec:
           mountPath: /var/lib/unbound
       {{- end }}
       
+      {{- if eq ($.Values.global.authDNS.type | default "knot") "bind" }}
+      # BIND 9 Authoritative DNS  
+      - name: bind-auth
+        image: {{ $.Values.global.images.bind }}
+        command: ["/usr/sbin/named"]
+        args: ["-c", "/etc/bind/named.conf", "-g"]
+        ports:
+        - containerPort: 5353
+          protocol: UDP
+          name: auth-dns-udp
+        - containerPort: 5353
+          protocol: TCP
+          name: auth-dns-tcp
+        volumeMounts:
+        - name: config
+          mountPath: /etc/bind/named.conf
+          subPath: bind.conf
+        - name: zones
+          mountPath: /var/lib/bind/zones
+      {{- else }}
+      # Knot Authoritative DNS (default)
       - name: knot-auth
         image: {{ $.Values.global.images.knotAuth }}
         command: ["/usr/sbin/knotd"]
@@ -141,6 +162,8 @@ spec:
           mountPath: /etc/knot/knot.conf
           subPath: knot.conf
         - name: zones
+          mountPath: /var/lib/knot/zones
+      {{- end }}
           mountPath: /var/lib/knot/zones
       {{- end }}
       {{- if $.Values.services.dhcp.enabled }}
