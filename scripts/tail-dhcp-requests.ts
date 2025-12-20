@@ -7,6 +7,7 @@
  */
 
 const NAMESPACE = "dns-dhcp";
+const CONTEXT = "my-cluster";
 const DEFAULT_SEGMENT = "128";
 const CONTAINER = "kea-dhcp4";
 const CACHE_TTL_MS = 30000; // Cache for 30 seconds
@@ -78,6 +79,7 @@ class HostnameCache {
           this.podName,
           "-n",
           NAMESPACE,
+          "--context", CONTEXT,
           "-c",
           CONTAINER,
           "--",
@@ -190,7 +192,7 @@ function formatWithHostname(
 async function checkPodExists(podName: string): Promise<boolean> {
   try {
     const cmd = new Deno.Command("kubectl", {
-      args: ["get", "pod", podName, "-n", NAMESPACE],
+      args: ["get", "pod", podName, "-n", NAMESPACE, "--context", CONTEXT],
       stdout: "null",
       stderr: "null",
     });
@@ -239,7 +241,7 @@ async function main() {
 
   // Tail logs
   const cmd = new Deno.Command("kubectl", {
-    args: ["logs", "-f", podName, "-n", NAMESPACE, "-c", CONTAINER],
+    args: ["logs", "-f", podName, "-n", NAMESPACE, "-c", CONTAINER, "--context", CONTEXT],
     stdout: "piped",
     stderr: "piped",
   });

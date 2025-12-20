@@ -34,196 +34,51 @@ spec:
         {{- toYaml $.Values.global.imagePullSecrets | nindent 8 }}
       {{- end }}
       initContainers:
-      # Fix routing: set higher metric on eth0 so net1 is always preferred
-      - name: init-routes
-        image: busybox
-        command: ['sh', '-c']
-        args:
-        - |
-          # Remove the default route via eth0
-          ip route del default via {{ $.Values.network.podGateway }} dev eth0 || true
-          # Re-add it with a higher metric (100) so it's only used as backup
-          ip route add default via {{ $.Values.network.podGateway }} dev eth0 metric 100
-          # Add route for Kubernetes Service CIDR (for Stork Server, etc)
-          ip route add {{ $.Values.network.serviceCIDR }} via {{ $.Values.network.podGateway }} dev eth0 || true
-          echo "Routes configured:"
-          ip route
-        securityContext:
-          capabilities:
-            add: ["NET_ADMIN"]
+      {{- include "containers.init.routes" (dict "network" $.Values.network) | nindent 6 }}
       {{- if $.Values.services.dns.enabled }}
-      - name: init-zones
-        image: busybox
-        command: ['sh', '-c', 'cp /config-init/*.zone /zones/ || true']
-        volumeMounts:
-        - name: zones
-          mountPath: /zones
-        - name: config
-          mountPath: /config-init
+      {{- include "containers.init.zones" . | nindent 6 }}
       {{- if eq ($.Values.global.resolver.type | default "knot") "unbound" }}
-      - name: init-unbound
-        image: {{ $.Values.global.images.unbound }}
-        command: ['sh', '-c']
-        args:
-        - |
-          # Create unbound directories
-          mkdir -p /var/lib/unbound
-          # Initialize trust anchor if it doesn't exist
-          if [ ! -f /var/lib/unbound/root.key ]; then
-            unbound-anchor -a /var/lib/unbound/root.key || true
-          fi
-        volumeMounts:
-        - name: unbound-data
-          mountPath: /var/lib/unbound
+      {{- include "containers.init.unbound" (dict "images" $.Values.global.images) | nindent 6 }}
       {{- end }}
+      {{- end }}
+      {{- if and $.Values.services.dhcp.enabled $.Values.stork.enabled $.Values.stork.agent.enabled }}
+      {{- include "containers.init.kea-sockets" . | nindent 6 }}
       {{- end }}
       containers:
       {{- if $.Values.services.dns.enabled }}
       {{- if eq ($.Values.global.resolver.type | default "knot") "knot" }}
-      - name: knot-resolver
-        image: {{ $.Values.global.images.knotResolver }}
-        command: ["sh", "-c"]
-        args: 
-        - |
-          exec /usr/sbin/kresd -c /etc/knot-resolver/kresd.conf -n
-        ports:
-        - containerPort: 53
-          protocol: UDP
-          name: dns-udp
-        - containerPort: 53
-          protocol: TCP
-          name: dns-tcp
-        - containerPort: 8453
-          protocol: TCP
-          name: metrics
-        volumeMounts:
-        - name: config
-          mountPath: /etc/knot-resolver/kresd.conf
-          subPath: kresd.conf
+      {{- include "containers.knot.resolver" (dict "images" $.Values.global.images) | nindent 6 }}
       {{- else if eq $.Values.global.resolver.type "unbound" }}
-      - name: unbound
-        image: {{ $.Values.global.images.unbound }}
-        command: ["sh", "-c"]
-        args:
-        - |
-          exec unbound -d -c /etc/unbound/unbound.conf
-        ports:
-        - containerPort: 53
-          protocol: UDP
-          name: dns-udp
-        - containerPort: 53
-          protocol: TCP
-          name: dns-tcp
-        - containerPort: 8953
-          protocol: TCP
-          name: control
-        volumeMounts:
-        - name: config
-          mountPath: /etc/unbound/unbound.conf
-          subPath: unbound.conf
-        - name: unbound-data
-          mountPath: /var/lib/unbound
+      {{- include "containers.unbound" (dict "images" $.Values.global.images) | nindent 6 }}
       {{- end }}
-      
+
       {{- if eq ($.Values.global.authDNS.type | default "knot") "bind" }}
-      # BIND 9 Authoritative DNS  
-      - name: bind-auth
-        image: {{ $.Values.global.images.bind }}
-        command: ["/usr/sbin/named"]
-        args: ["-c", "/etc/bind/named.conf", "-g"]
-        ports:
-        - containerPort: 5353
-          protocol: UDP
-          name: auth-dns-udp
-        - containerPort: 5353
-          protocol: TCP
-          name: auth-dns-tcp
-        volumeMounts:
-        - name: config
-          mountPath: /etc/bind/named.conf
-          subPath: bind.conf
-        - name: zones
-          mountPath: /var/lib/bind/zones
+      {{- include "containers.bind.auth" (dict "images" $.Values.global.images) | nindent 6 }}
       {{- else }}
-      # Knot Authoritative DNS (default)
-      - name: knot-auth
-        image: {{ $.Values.global.images.knotAuth }}
-        command: ["/usr/sbin/knotd"]
-        args: ["-c", "/etc/knot/knot.conf"]
-        ports:
-        - containerPort: 5353
-          protocol: UDP
-          name: auth-dns-udp
-        - containerPort: 5353
-          protocol: TCP
-          name: auth-dns-tcp
-        volumeMounts:
-        - name: config
-          mountPath: /etc/knot/knot.conf
-          subPath: knot.conf
-        - name: zones
-          mountPath: /var/lib/knot/zones
+      {{- include "containers.knot.auth" (dict "images" $.Values.global.images) | nindent 6 }}
       {{- end }}
-          mountPath: /var/lib/knot/zones
       {{- end }}
+
       {{- if $.Values.services.dhcp.enabled }}
-      - name: kea-dhcp4
-        image: {{ $.Values.global.images.keaDhcp }}
-        command: ["/usr/sbin/kea-dhcp4"]
-        args: ["-c", "/etc/kea/kea-dhcp4.conf"]
-        securityContext:
-          capabilities:
-            add: ["NET_RAW", "NET_ADMIN"]
-        volumeMounts:
-        - name: config
-          mountPath: /etc/kea/kea-dhcp4.conf
-          subPath: kea-dhcp4.conf
-        - name: kea-leases
-          mountPath: /var/lib/kea
-      
-      - name: kea-ddns
-        image: {{ $.Values.global.images.keaDdns }}
-        command: ["/usr/sbin/kea-dhcp-ddns"]
-        args: ["-c", "/etc/kea/kea-dhcp-ddns.conf"]
-        volumeMounts:
-        - name: config
-          mountPath: /etc/kea/kea-dhcp-ddns.conf
-          subPath: kea-dhcp-ddns.conf
+      {{- include "containers.kea.dhcp4" (dict "images" $.Values.global.images "stork" $.Values.stork) | nindent 6 }}
+      {{- include "containers.kea.ddns" (dict "images" $.Values.global.images "stork" $.Values.stork) | nindent 6 }}
 
       {{- if and $.Values.stork.enabled $.Values.stork.agent.enabled }}
-      # Stork Agent - monitors Kea DHCP and Knot/BIND DNS
-      - name: stork-agent
-        image: {{ $.Values.global.images.storkAgent }}
-        env:
-        - name: STORK_AGENT_HOST
-          valueFrom:
-            fieldRef:
-              fieldPath: status.podIP
-        - name: STORK_AGENT_SERVER_URL
-          value: {{ $.Values.stork.agent.serverUrl | quote }}
-        - name: STORK_AGENT_PORT
-          value: "8080"
-        {{- if $.Values.stork.agent.serverToken }}
-        - name: STORK_AGENT_SERVER_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: stork-agent-token
-              key: token
-        {{- end }}
-        ports:
-        - containerPort: 8080
-          name: agent
-          protocol: TCP
-        resources:
-          {{- toYaml $.Values.stork.agent.resources | nindent 10 }}
+      {{- include "containers.kea.ctrl-agent" (dict "images" $.Values.global.images) | nindent 6 }}
+      {{- include "containers.stork.agent" (dict "images" $.Values.global.images "stork" $.Values.stork "segmentName" .name) | nindent 6 }}
       {{- end }}
       {{- end }}
+
       volumes:
       - name: config
         configMap:
           name: unified-dns-dhcp-{{ .name }}-config
       {{- if and $.Values.services.dns.enabled (eq ($.Values.global.resolver.type | default "knot") "unbound") }}
       - name: unbound-data
+        emptyDir: {}
+      {{- end }}
+      {{- if and $.Values.services.dhcp.enabled $.Values.stork.enabled $.Values.stork.agent.enabled }}
+      - name: kea-sockets
         emptyDir: {}
       {{- end }}
   volumeClaimTemplates:
@@ -254,5 +109,19 @@ spec:
       resources:
         requests:
           storage: 100Mi
+  {{- end }}
+  {{- if and $.Values.stork.enabled $.Values.stork.agent.enabled }}
+  - metadata:
+      name: stork-agent-data
+    spec:
+      {{- if $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml $.Values.global.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: local-path
+      resources:
+        requests:
+          storage: 10Mi
   {{- end }}
 {{- end }}

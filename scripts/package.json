@@ -1,0 +1,26 @@
+{
+  "name": "backup-tools",
+  "version": "1.0.0",
+  "description": "Kubernetes DNS/DHCP backup utilities",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "backup:knot": "tsx backup-knot-zones.ts",
+    "backup:kea-dhcp4": "tsx backup-kea-leases.ts",
+    "prepare:restore": "tsx prepare-knot-restore.ts",
+    "prepare:kea-leases-restore": "tsx prepare-kea-leases-restore.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "AFL-2.0",
+  "dependencies": {
+    "cmd-ts": "^0.14.3",
+    "zx": "^8.8.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}

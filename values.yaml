@@ -34,8 +34,8 @@ global:
     knot: cznic/knot:latest
     keaDhcp: ghcr.io/mabels/kea-dhcp-dns:latest
     keaDdns: ghcr.io/mabels/kea-dhcp-dns:latest
-    storkServer: ghcr.io/mabels/kea-dhcp-dns/stork-server:latest
-    storkAgent: ghcr.io/mabels/kea-dhcp-dns/stork-agent:latest
+    storkServer: ghcr.io/mabels/kea-dhcp-dns/stork-server:2.2
+    storkAgent: ghcr.io/mabels/kea-dhcp-dns/stork-agent:2.2
 
 # Service toggles (per segment)
 services:
@@ -103,7 +103,9 @@ stork:
   # This is the default for all segments
   agent:
     enabled: true  # Default: enable for all segments
-    
+    serverUrl: "http://stork-server.dns-dhcp.svc.cluster.local:8080"
+    serverToken: ""  # Set to a fixed token to prevent new registration on every restart
+
     resources:
       requests:
         memory: 64Mi

@@ -17,3 +17,8 @@ scripts/.venv/
 scripts/__pycache__/
 *.pyc
 *.pyo
+
+# Node.js dependencies and TypeScript build artifacts
+scripts/node_modules/
+scripts/backups/
+scripts/*.log

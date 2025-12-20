@@ -8,9 +8,7 @@ metadata:
   namespace: {{ .Values.global.namespace }}
 type: Opaque
 stringData:
-  # CHANGE THIS PASSWORD!
-  # Should match the password used when creating the database
-  password: "CHANGE_ME_STORK_DB_PASSWORD"
+  password: {{ .Values.stork.server.database.password | quote }}
 ---
 apiVersion: apps/v1
 kind: Deployment
