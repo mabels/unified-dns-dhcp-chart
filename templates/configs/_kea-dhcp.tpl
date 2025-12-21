@@ -7,7 +7,7 @@ kea-dhcp4.conf: |
       },
       "control-socket": {
         "socket-type": "http",
-        "socket-address": "127.0.0.1",
+        "socket-address": "0.0.0.0",
         "socket-port": 8000
       },
       "hooks-libraries": [

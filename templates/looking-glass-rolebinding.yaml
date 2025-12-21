@@ -1,0 +1,18 @@
+{{- if .Values.lookingGlass.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: looking-glass
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: looking-glass
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: looking-glass
+subjects:
+- kind: ServiceAccount
+  name: looking-glass
+  namespace: {{ .Values.global.namespace }}
+{{- end }}

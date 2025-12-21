@@ -1,0 +1,39 @@
+{{- if and .Values.lookingGlass.enabled .Values.lookingGlass.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: looking-glass
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: looking-glass
+  {{- with .Values.lookingGlass.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.lookingGlass.ingress.className }}
+  ingressClassName: {{ .Values.lookingGlass.ingress.className }}
+  {{- end }}
+  {{- if .Values.lookingGlass.ingress.tls.enabled }}
+  tls:
+    {{- range .Values.lookingGlass.ingress.hosts }}
+    - hosts:
+        - {{ . }}
+      secretName: {{ regexReplaceAll "\\." . "-" }}-tls
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.lookingGlass.ingress.hosts }}
+    - host: {{ . }}
+      http:
+        paths:
+        - path: {{ $.Values.lookingGlass.ingress.path }}
+          pathType: {{ $.Values.lookingGlass.ingress.pathType }}
+          backend:
+            service:
+              name: looking-glass
+              port:
+                number: {{ $.Values.lookingGlass.port }}
+    {{- end }}
+{{- end }}

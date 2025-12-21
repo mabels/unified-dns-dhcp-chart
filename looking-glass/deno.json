@@ -1,0 +1,8 @@
+{
+  "tasks": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "prod": "cd frontend && npm run build && cd ../backend && deno task start",
+    "start": "cd backend && deno task start"
+  }
+}

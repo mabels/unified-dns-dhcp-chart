@@ -34,8 +34,6 @@ global:
     knot: cznic/knot:latest
     keaDhcp: ghcr.io/mabels/kea-dhcp-dns:latest
     keaDdns: ghcr.io/mabels/kea-dhcp-dns:latest
-    storkServer: ghcr.io/mabels/kea-dhcp-dns/stork-server:2.2
-    storkAgent: ghcr.io/mabels/kea-dhcp-dns/stork-agent:2.2
 
 # Service toggles (per segment)
 services:
@@ -43,76 +41,65 @@ services:
     enabled: true
   dhcp:
     enabled: true
+  keaApi:
+    enabled: true
 
-# Stork monitoring configuration
-stork:
-  enabled: true
-  
-  # Stork Server (central monitoring UI)
-  # Deploy this ONCE separately with segments: []
-  server:
-    enabled: false  # Enable only for server deployment
-    replicas: 1
-    port: 8080
-    
-    # PostgreSQL database connection
-    database:
-      host: postgresql.postgresql.svc.cluster.local
-      port: 5432
-      name: stork
-      user: stork_user
-      # Password from secret
-      passwordSecret:
-        name: stork-db-credentials
-        key: password
-    
-    resources:
-      requests:
-        memory: 128Mi
-        cpu: 100m
-      limits:
-        memory: 512Mi
-        cpu: 500m
-  
-  # Ingress for Stork Server Web UI
+# Looking Glass - Web UI for viewing DHCP leases
+lookingGlass:
+  enabled: false  # Set to true to deploy the Looking Glass dashboard
+  replicas: 1
+  port: 3000
+
+  # Docker image configuration
+  image:
+    repository: ghcr.io/mabels/kea-dhcp-dns/looking-glass
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # Persistent storage for SQLite database
+  persistence:
+    enabled: true
+    size: 1Gi
+    storageClassName: ""  # Use default if empty
+    mountPath: /data
+    # Database will be stored at /data/leases.db
+
+  # Resource limits
+  resources:
+    requests:
+      memory: 128Mi
+      cpu: 100m
+    limits:
+      memory: 256Mi
+      cpu: 200m
+
+  # Optional: Ingress configuration
   ingress:
-    enabled: false  # Enable for server deployment
-    className: ""   # e.g., "nginx" or "traefik"
-    
+    enabled: false
+    className: ""  # e.g., "nginx" or "traefik"
+
     # Hosts for the ingress
     hosts:
-      - stork.example.com
-    
+      - looking-glass.example.com
+
     # Annotations (e.g., for cert-manager)
-    annotations:
+    annotations: {}
       # cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      # external-dns.alpha.kubernetes.io/hostname: "stork.example.com"
-    
+      # external-dns.alpha.kubernetes.io/hostname: "looking-glass.example.com"
+
     # TLS configuration
     tls:
       enabled: true
-      # Certificate secrets are auto-generated from hostnames
-      # Format: hostname with dots replaced by dashes
-      # Example: stork.example.com -> stork-example-com
-    
+
     # Path configuration
     path: /
     pathType: Prefix
-  
-  # Stork Agent (runs as sidecar in each segment pod)
-  # This is the default for all segments
-  agent:
-    enabled: true  # Default: enable for all segments
-    serverUrl: "http://stork-server.dns-dhcp.svc.cluster.local:8080"
-    serverToken: ""  # Set to a fixed token to prevent new registration on every restart
 
-    resources:
-      requests:
-        memory: 64Mi
-        cpu: 50m
-      limits:
-        memory: 256Mi
-        cpu: 200m
+  # Optional: Override segments list (defaults to all segments from .Values.segments)
+  # segments:
+  #   - name: "128"
+  #     namespace: dns-dhcp
+  #     statefulset: unified-dns-dhcp-128
 
 # Network segments
 # Each segment gets its own StatefulSet with DNS/DHCP services

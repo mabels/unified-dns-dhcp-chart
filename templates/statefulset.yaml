@@ -41,9 +41,6 @@ spec:
       {{- include "containers.init.unbound" (dict "images" $.Values.global.images) | nindent 6 }}
       {{- end }}
       {{- end }}
-      {{- if and $.Values.services.dhcp.enabled $.Values.stork.enabled $.Values.stork.agent.enabled }}
-      {{- include "containers.init.kea-sockets" . | nindent 6 }}
-      {{- end }}
       containers:
       {{- if $.Values.services.dns.enabled }}
       {{- if eq ($.Values.global.resolver.type | default "knot") "knot" }}
@@ -60,13 +57,8 @@ spec:
       {{- end }}
 
       {{- if $.Values.services.dhcp.enabled }}
-      {{- include "containers.kea.dhcp4" (dict "images" $.Values.global.images "stork" $.Values.stork) | nindent 6 }}
-      {{- include "containers.kea.ddns" (dict "images" $.Values.global.images "stork" $.Values.stork) | nindent 6 }}
-
-      {{- if and $.Values.stork.enabled $.Values.stork.agent.enabled }}
-      {{- include "containers.kea.ctrl-agent" (dict "images" $.Values.global.images) | nindent 6 }}
-      {{- include "containers.stork.agent" (dict "images" $.Values.global.images "stork" $.Values.stork "segmentName" .name) | nindent 6 }}
-      {{- end }}
+      {{- include "containers.kea.dhcp4" (dict "images" $.Values.global.images) | nindent 6 }}
+      {{- include "containers.kea.ddns" (dict "images" $.Values.global.images) | nindent 6 }}
       {{- end }}
 
       volumes:
@@ -75,10 +67,6 @@ spec:
           name: unified-dns-dhcp-{{ .name }}-config
       {{- if and $.Values.services.dns.enabled (eq ($.Values.global.resolver.type | default "knot") "unbound") }}
       - name: unbound-data
-        emptyDir: {}
-      {{- end }}
-      {{- if and $.Values.services.dhcp.enabled $.Values.stork.enabled $.Values.stork.agent.enabled }}
-      - name: kea-sockets
         emptyDir: {}
       {{- end }}
   volumeClaimTemplates:

@@ -1,0 +1,38 @@
+# Node modules
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Deno
+.deno/
+deno.lock
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+backend/leases.db*

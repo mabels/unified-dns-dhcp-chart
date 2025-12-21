@@ -1,0 +1,17 @@
+{{- if .Values.lookingGlass.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: looking-glass
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: looking-glass
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/exec"]
+  verbs: ["get", "list", "create"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+{{- end }}

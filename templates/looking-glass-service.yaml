@@ -1,0 +1,19 @@
+{{- if .Values.lookingGlass.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: looking-glass
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: looking-glass
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.lookingGlass.port }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: looking-glass
+{{- end }}

@@ -1,0 +1,74 @@
+{{- if .Values.lookingGlass.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: looking-glass
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: looking-glass
+spec:
+  replicas: {{ .Values.lookingGlass.replicas }}
+  selector:
+    matchLabels:
+      app: looking-glass
+  template:
+    metadata:
+      labels:
+        app: looking-glass
+    spec:
+      serviceAccountName: looking-glass
+      containers:
+      - name: looking-glass
+        image: "{{ .Values.lookingGlass.image.repository }}:{{ .Values.lookingGlass.image.tag }}"
+        imagePullPolicy: {{ .Values.lookingGlass.image.pullPolicy | default "IfNotPresent" }}
+        ports:
+        - containerPort: {{ .Values.lookingGlass.port }}
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          value: {{ .Values.lookingGlass.port | quote }}
+        - name: ENDPOINTS
+          valueFrom:
+            configMapKeyRef:
+              name: looking-glass-config
+              key: endpoints.json
+        {{- if .Values.lookingGlass.persistence.enabled }}
+        - name: DB_PATH
+          value: {{ .Values.lookingGlass.persistence.mountPath }}/leases.db
+        {{- end }}
+        {{- if .Values.lookingGlass.persistence.enabled }}
+        volumeMounts:
+        - name: data
+          mountPath: {{ .Values.lookingGlass.persistence.mountPath }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        resources:
+          {{- toYaml .Values.lookingGlass.resources | nindent 10 }}
+      {{- if .Values.lookingGlass.persistence.enabled }}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: looking-glass-data
+      {{- end }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

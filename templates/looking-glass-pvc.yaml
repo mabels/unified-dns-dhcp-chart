@@ -1,0 +1,21 @@
+{{- if and .Values.lookingGlass.enabled .Values.lookingGlass.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: looking-glass-data
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: looking-glass
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.lookingGlass.persistence.storageClassName }}
+  storageClassName: {{ .Values.lookingGlass.persistence.storageClassName }}
+  {{- else if .Values.global.storage.className }}
+  storageClassName: {{ .Values.global.storage.className }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.lookingGlass.persistence.size }}
+{{- end }}

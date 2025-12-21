@@ -22,3 +22,5 @@ scripts/__pycache__/
 scripts/node_modules/
 scripts/backups/
 scripts/*.log
+
+looking-glass/

@@ -5,11 +5,11 @@
   args:
   - |
     rm -f /var/run/kea/kea-dhcp4.*.pid
-    /usr/sbin/kea-dhcp4 -c /etc/kea/kea-dhcp4.conf &
-    KEA_PID=$!
-    sleep 2
-    chmod 777 /var/run/kea/kea4-ctrl-socket 2>/dev/null || true
-    wait $KEA_PID
+    exec /usr/sbin/kea-dhcp4 -c /etc/kea/kea-dhcp4.conf
+  ports:
+  - containerPort: 8000
+    name: kea-api
+    protocol: TCP
   securityContext:
     capabilities:
       add: ["NET_RAW", "NET_ADMIN"]
@@ -28,8 +28,4 @@
     subPath: restore-kea-leases.sh
   - name: kea-leases
     mountPath: /var/lib/kea
-  {{- if and .stork.enabled .stork.agent.enabled }}
-  - name: kea-sockets
-    mountPath: /var/run/kea
-  {{- end }}
 {{- end -}}
