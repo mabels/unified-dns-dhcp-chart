@@ -27,12 +27,17 @@ FROM denoland/deno:latest
 
 WORKDIR /app
 
+# Set Deno cache directory to persist dependencies
+ENV DENO_DIR=/deno-dir
+
 # Copy backend source
 COPY backend/ ./backend/
 
 # Cache all Deno dependencies (including native libraries like sqlite3)
 # This prevents runtime downloads and significantly speeds up container startup
-RUN deno cache --reload backend/main.ts
+# The --lock flag is optional but helps ensure consistency
+RUN deno cache --reload --lock=backend/deno.lock --lock-write backend/main.ts || \
+    deno cache --reload backend/main.ts
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
