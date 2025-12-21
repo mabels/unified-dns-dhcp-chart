@@ -30,6 +30,10 @@ WORKDIR /app
 # Copy backend source
 COPY backend/ ./backend/
 
+# Cache all Deno dependencies (including native libraries like sqlite3)
+# This prevents runtime downloads and significantly speeds up container startup
+RUN deno cache --reload backend/main.ts
+
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
