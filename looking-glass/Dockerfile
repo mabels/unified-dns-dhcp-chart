@@ -22,38 +22,54 @@ COPY frontend/ ./
 # Build frontend
 RUN npm run build
 
-# Stage 2: Runtime with Deno
-FROM denoland/deno:latest
+# Stage 2: Build backend with Node.js
+FROM node:22-alpine AS backend-builder
+
+WORKDIR /app/backend
+
+# Copy backend package files
+COPY backend/package*.json ./
+
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
+
+# Copy backend source
+COPY backend/ ./
+
+# Build TypeScript
+RUN npm run build
+
+# Stage 3: Runtime with Node.js
+FROM node:22-alpine
 
 WORKDIR /app
 
-# Set Deno cache directory to persist dependencies
-ENV DENO_DIR=/deno-dir
+# Copy backend package files
+COPY backend/package*.json ./backend/
 
-# Copy backend source
-COPY backend/ ./backend/
+# Install production dependencies only
+RUN cd backend && npm ci --only=production
 
-# Cache all Deno dependencies (including native libraries like sqlite3)
-# This prevents runtime downloads and significantly speeds up container startup
-# The --lock flag is optional but helps ensure consistency
-RUN deno cache --reload --lock=backend/deno.lock --lock-write backend/main.ts || \
-    deno cache --reload backend/main.ts
+# Copy backend compiled code
+COPY --from=backend-builder /app/backend/dist ./backend/dist
+
+# Copy Drizzle migrations
+COPY --from=backend-builder /app/backend/drizzle ./backend/drizzle
 
 # Copy built frontend from stage 1
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
+# Create data directory
 RUN mkdir -p /data
-
-# Create a simple server that serves both API and static files
-RUN echo '#!/bin/sh\nexec deno run --allow-all backend/main.ts' > /app/entrypoint.sh && \
-    chmod +x /app/entrypoint.sh
-
-# Expose port
-EXPOSE 3000
 
 # Set environment variables
 ENV PORT=3000
 ENV DB_PATH=/data/leases.db
+ENV STATIC_DIR=./frontend/dist
+ENV NODE_ENV=production
+
+# Expose port
+EXPOSE 3000
 
 # Run the server
-CMD ["/app/entrypoint.sh"]
+CMD ["node", "backend/dist/index.js"]
