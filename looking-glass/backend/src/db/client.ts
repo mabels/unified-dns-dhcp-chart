@@ -55,6 +55,19 @@ export const db = drizzle(client, { schema })
 // From dist/db/client.js -> ../../drizzle
 const migrationsFolder = join(__dirname, '../../drizzle')
 console.log(`Running migrations from: ${migrationsFolder}`)
-await migrate(db, { migrationsFolder })
+
+try {
+  await migrate(db, { migrationsFolder })
+  console.log(`Migrations completed successfully`)
+} catch (error) {
+  // If the table already exists, it means we're migrating from the old Deno version
+  // Just log a warning and continue
+  if (error instanceof Error && error.message.includes('already exists')) {
+    console.warn(`Migration skipped - database already has schema (migrating from Deno version)`)
+  } else {
+    console.error(`Migration failed:`, error)
+    throw error
+  }
+}
 
 console.log(`Database ready at: ${dbPath}`)
