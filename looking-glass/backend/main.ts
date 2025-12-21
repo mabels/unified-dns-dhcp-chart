@@ -10,7 +10,7 @@ import { serveDir } from "jsr:@std/http@1.0.10/file-server";
 import { LeaseDatabase } from "./services/database.ts";
 
 const config = loadConfig();
-const STATIC_DIR = "../frontend/dist";
+const STATIC_DIR = Deno.env.get("STATIC_DIR") || "../frontend/dist";
 
 // Initialize database
 const dbPath = Deno.env.get("DB_PATH") || "./leases.db";

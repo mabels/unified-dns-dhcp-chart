@@ -79,14 +79,14 @@ restore-kea-leases.sh: |
   echo "Applying static leases from config..."
 
   # Check if we have static leases to apply
-  STATIC_LEASES_COUNT={{ len .segment.staticLeases }}
+  STATIC_LEASES_COUNT={{ len (default (list) .segment.staticLeases) }}
   if [ "$STATIC_LEASES_COUNT" -eq 0 ]; then
     echo "No static leases configured"
   else
     echo "Applying $STATIC_LEASES_COUNT static lease(s)..."
     echo ""
 
-    {{- range .segment.staticLeases }}
+    {{- range (default (list) .segment.staticLeases) }}
     # Static lease: {{ .macAddress }} -> {{ .address }}{{ if .hostname }} ({{ .hostname }}){{ end }}
     echo "  Adding: {{ .address }} for {{ .macAddress }}{{ if .hostname }} ({{ .hostname }}){{ end }}"
 
