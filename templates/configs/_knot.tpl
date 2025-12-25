@@ -1,8 +1,8 @@
 {{- define "configs.knot" -}}
 knot.conf: |
   server:
-    listen: "127.0.0.1@5353"
-    listen: "::1@5353"
+    listen: "0.0.0.0@5353"
+    listen: "::@5353"
 
   log:
     - target: stdout
@@ -25,11 +25,15 @@ knot.conf: |
       action: update
       key: {{ .global.ddns.keyName }}
 
+    - id: transfer_acl
+      address: [{{- range $i, $net := .global.authDNS.allowTransfer }}{{- if $i }}, {{ end }}{{ $net | quote }}{{- end }}]
+      action: transfer
+
   zone:
     - domain: {{ .segment.zone.forward  | quote }}
       storage: "/var/lib/knot/zones"
       file: "{{ .segment.zone.forward }}.zone"
-      acl: ddns_acl
+      acl: [ddns_acl, transfer_acl]
       journal-content: all
       zonefile-sync: 0
       zonefile-load: difference
@@ -37,7 +41,7 @@ knot.conf: |
     - domain: {{ .segment.zone.reverseV4 | quote  }}
       storage: "/var/lib/knot/zones"
       file: "{{ .segment.zone.reverseV4 }}.zone"
-      acl: ddns_acl
+      acl: [ddns_acl, transfer_acl]
       journal-content: all
       zonefile-sync: 0
       zonefile-load: difference
@@ -46,7 +50,7 @@ knot.conf: |
     - domain: {{ .segment.zone.reverseV6 | quote  }}
       storage: "/var/lib/knot/zones"
       file: "{{ .segment.zone.reverseV6 }}.zone"
-      acl: ddns_acl
+      acl: [ddns_acl, transfer_acl]
       journal-content: all
       zonefile-sync: 0
       zonefile-load: difference

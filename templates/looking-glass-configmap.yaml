@@ -22,7 +22,7 @@ data:
     {{- $endpoints := list }}
     {{- $sourceSegments := .Values.lookingGlass.segments | default .Values.segments }}
     {{- range $sourceSegments }}
-    {{- $endpoints = append $endpoints (dict "name" (toString .name) "url" (printf "http://unified-dns-dhcp-%s-kea-api.%s.svc.cluster.local:8000" (toString .name) $.Values.global.namespace)) }}
+    {{- $endpoints = append $endpoints (dict "name" (toString .name) "url" (printf "http://unified-dns-dhcp-%s-lg.%s.svc.cluster.local:8000" (toString .name) $.Values.global.namespace)) }}
     {{- end }}
     {{ toJson $endpoints }}
 {{- end }}

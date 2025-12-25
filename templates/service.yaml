@@ -20,26 +20,38 @@ spec:
     protocol: TCP
   type: ClusterIP
 {{- end }}
-{{- if $.Values.services.keaApi.enabled }}
+{{- if or $.Values.services.keaApi.enabled $.Values.services.knotAuth.enabled }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: unified-dns-dhcp-{{ .name }}-kea-api
+  name: unified-dns-dhcp-{{ .name }}-lg
   namespace: {{ $.Values.global.namespace }}
   labels:
     app: unified-dns-dhcp
     segment: "{{ .name }}"
-    component: kea-api
+    component: looking-glass
 spec:
   selector:
     app: unified-dns-dhcp
     segment: "{{ .name }}"
   ports:
+  {{- if $.Values.services.keaApi.enabled }}
   - name: kea-control
     port: 8000
     targetPort: 8000
     protocol: TCP
+  {{- end }}
+  {{- if $.Values.services.knotAuth.enabled }}
+  - name: knot-auth-tcp
+    port: 5353
+    targetPort: 5353
+    protocol: TCP
+  - name: knot-auth-udp
+    port: 5353
+    targetPort: 5353
+    protocol: UDP
+  {{- end }}
   type: ClusterIP
 {{- end }}
 {{- end }}
