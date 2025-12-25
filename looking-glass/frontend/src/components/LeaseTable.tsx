@@ -149,25 +149,25 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
 
   if (sortedLeases.length === 0) {
     return (
-      <div className="text-center py-12 bg-white rounded-lg shadow">
-        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+        <svg className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No leases found</h3>
-        <p className="mt-1 text-sm text-gray-500">No DHCP leases match your search criteria.</p>
+        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No leases found</h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">No DHCP leases match your search criteria.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white shadow-sm rounded-lg overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-        <h2 className="text-lg font-medium text-gray-900">
+    <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg overflow-hidden">
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
           {sortedLeases.length} Lease{sortedLeases.length !== 1 ? "s" : ""}
         </h2>
         <button
           onClick={exportToCSV}
-          className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -176,17 +176,17 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
         </button>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
               {sortedLeases.some((l) => l.segment) && (
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Segment
                 </th>
               )}
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort("ip")}
               >
                 <div className="flex items-center">
@@ -196,7 +196,7 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort("mac")}
               >
                 <div className="flex items-center">
@@ -206,7 +206,7 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort("hostname")}
               >
                 <div className="flex items-center">
@@ -214,12 +214,12 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
                   <SortIcon field="hostname" />
                 </div>
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Subnet
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort("added")}
               >
                 <div className="flex items-center">
@@ -227,12 +227,12 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
                   <SortIcon field="added" />
                 </div>
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 Last Seen
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort("expires")}
               >
                 <div className="flex items-center">
@@ -240,30 +240,30 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
                   <SortIcon field="expires" />
                 </div>
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 State
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {sortedLeases.map((lease, index) => {
               const { formatted: expiresFormatted, isExpired } = formatTimestamp(lease.cltt, lease["valid-lft"]);
               const { formatted: addedFormatted, relative: addedRelative, isRecent, isVeryRecent } = formatAddedTime(lease["created-at"] || lease.cltt);
               const { formatted: updatedFormatted, relative: updatedRelative } = formatUpdatedTime(lease["updated-at"] || lease.cltt);
               return (
-                <tr key={`${lease["ip-address"]}-${index}`} className={`hover:bg-gray-50 ${
-                  isVeryRecent ? "bg-blue-50" : isRecent ? "bg-green-50" : ""
+                <tr key={`${lease["ip-address"]}-${index}`} className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                  isVeryRecent ? "bg-blue-50 dark:bg-blue-900/20" : isRecent ? "bg-green-50 dark:bg-green-900/20" : ""
                 }`}>
                   {lease.segment && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                       {lease.segment}
                     </td>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900 dark:text-gray-100">
                     {onIpClick ? (
                       <button
                         onClick={() => onIpClick(lease["ip-address"])}
-                        className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer"
                       >
                         {lease["ip-address"]}
                       </button>
@@ -271,15 +271,15 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
                       lease["ip-address"]
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500 dark:text-gray-400">
                     {lease["hw-address"]}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                     {lease.hostname ? (
                       onHostnameClick ? (
                         <button
                           onClick={() => onHostnameClick(lease.hostname!)}
-                          className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer"
                         >
                           {lease.hostname}
                         </button>
@@ -287,41 +287,41 @@ export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTablePro
                         lease.hostname
                       )
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className="text-gray-400 dark:text-gray-500">-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {lease["subnet-id"]}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
-                      <span className={isVeryRecent ? "text-blue-600 font-semibold" : isRecent ? "text-green-600 font-medium" : "text-gray-500"}>
+                      <span className={isVeryRecent ? "text-blue-600 dark:text-blue-400 font-semibold" : isRecent ? "text-green-600 dark:text-green-400 font-medium" : "text-gray-500 dark:text-gray-400"}>
                         {addedFormatted}
                       </span>
                       {isVeryRecent && (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                           NEW
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       {addedRelative}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {updatedFormatted}
-                    <div className="text-xs text-gray-400 mt-1">
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                       {updatedRelative}
                     </div>
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isExpired ? "text-red-600" : "text-gray-500"}`}>
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isExpired ? "text-red-600 dark:text-red-400" : "text-gray-500 dark:text-gray-400"}`}>
                     {expiresFormatted}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      lease.state === 0 ? "bg-green-100 text-green-800" :
-                      lease.state === 1 ? "bg-red-100 text-red-800" :
-                      "bg-gray-100 text-gray-800"
+                      lease.state === 0 ? "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200" :
+                      lease.state === 1 ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200" :
+                      "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                     }`}>
                       {LEASE_STATES[lease.state] || lease.state}
                     </span>
