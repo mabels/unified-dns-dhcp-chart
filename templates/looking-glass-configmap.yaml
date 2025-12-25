@@ -9,23 +9,26 @@ metadata:
     app: looking-glass
 data:
   segments.json: |
-    {{- if .Values.lookingGlass.segments }}
+{{- if .Values.lookingGlass.segments }}
     {{ toJson .Values.lookingGlass.segments }}
-    {{- else }}
+{{- else }}
     {{- $segments := list }}
     {{- range .Values.segments }}
     {{- $segments = append $segments (dict "name" (toString .name) "namespace" $.Values.global.namespace "statefulset" (printf "unified-dns-dhcp-%s" (toString .name))) }}
     {{- end }}
     {{ toJson $segments }}
-    {{- end }}
+{{- end }}
   endpoints.json: |
-    {{- $endpoints := list }}
-    {{- $sourceSegments := .Values.lookingGlass.segments | default .Values.segments }}
-    {{- range $sourceSegments }}
-    {{- $endpoints = append $endpoints (dict "name" (toString .name) "url" (printf "http://unified-dns-dhcp-%s-lg.%s.svc.cluster.local:8000" (toString .name) $.Values.global.namespace)) }}
-    {{- end }}
+{{- $endpoints := list }}
+{{- $sourceSegments := .Values.lookingGlass.segments | default .Values.segments }}
+{{- range $sourceSegments }}
+{{- $endpoints = append $endpoints (dict "name" (toString .name) "url" (printf "http://unified-dns-dhcp-%s-lg.%s.svc.cluster.local:8000" (toString .name) $.Values.global.namespace)) }}
+{{- end }}
     {{ toJson $endpoints }}
   zoneEndpoints.json: |
+{{- if .Values.lookingGlass.zones }}
+    {{ toJson .Values.lookingGlass.zones }}
+{{- else }}
     {{- $zoneEndpoints := list }}
     {{- $sourceSegments := .Values.lookingGlass.segments | default .Values.segments }}
     {{- range $sourceSegments }}
@@ -46,4 +49,5 @@ data:
     {{- end }}
     {{- end }}
     {{ toJson $zoneEndpoints }}
+{{- end }}
 {{- end }}

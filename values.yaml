@@ -108,6 +108,14 @@ lookingGlass:
   #     namespace: dns-dhcp
   #     statefulset: unified-dns-dhcp-128
 
+  # Optional: Explicit zones configuration with DNS endpoints
+  # If provided, this takes precedence over extracting zones from segments
+  # zones:
+  #   - name: example.com
+  #     endpoint: dns://unified-dns-dhcp-128-lg.dns-dhcp.svc.cluster.local:5353
+  #   - name: 128.168.192.in-addr.arpa
+  #     endpoint: dns://unified-dns-dhcp-128-lg.dns-dhcp.svc.cluster.local:5353
+
 # Network segments
 # Each segment gets its own StatefulSet with DNS/DHCP services
 # Leave empty (segments: []) when deploying only Stork Server

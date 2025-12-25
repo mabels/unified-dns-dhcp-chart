@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { Layout } from "./components/Layout";
 import { SegmentSelector } from "./components/SegmentSelector";
 import { ZoneSelector } from "./components/ZoneSelector";
@@ -9,25 +10,29 @@ import { getAllLeases, getSegmentLeases, getSegments, getAllZones } from "./api/
 import type { KeaLease, Segment } from "./types/lease";
 import type { ZoneData, DnsRecord } from "./types/zone";
 
-type ViewMode = "leases" | "zones";
-
 function App() {
-  const [viewMode, setViewMode] = useState<ViewMode>("leases");
+  const navigate = useNavigate();
+  const routerState = useRouterState();
+  const currentPath = routerState.location.pathname;
+  const searchParams = routerState.location.search as any;
+
+  const viewMode = currentPath === '/zones' ? 'zones' : 'leases';
+  const searchTerm = searchParams?.search || '';
+  const zoneSearchTerm = searchParams?.search || '';
+  const autoRefresh = searchParams?.autoRefresh || false;
+  const refreshInterval = searchParams?.interval || 30;
+
   const [segments, setSegments] = useState<Segment[]>([]);
   const [selectedSegment, setSelectedSegment] = useState<Segment | "all">("all");
   const [leases, setLeases] = useState<KeaLease[]>([]);
   const [filteredLeases, setFilteredLeases] = useState<KeaLease[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  const [refreshInterval, setRefreshInterval] = useState(30);
 
   // Zones state
   const [zones, setZones] = useState<ZoneData[]>([]);
   const [selectedZone, setSelectedZone] = useState<ZoneData | "all">("all");
   const [filteredRecords, setFilteredRecords] = useState<DnsRecord[]>([]);
-  const [zoneSearchTerm, setZoneSearchTerm] = useState("");
 
   // Load segments on mount
   useEffect(() => {
@@ -147,21 +152,80 @@ function App() {
     }
   }, [zones, selectedZone, zoneSearchTerm]);
 
-  const handleRecordClick = (record: DnsRecord) => {
+  function handleRecordClick(record: DnsRecord) {
     // If clicking on an IP, switch to leases view and filter by that IP
     if (record.type === "A" || record.type === "AAAA") {
-      setViewMode("leases");
-      setSearchTerm(record.value);
+      navigate({
+        to: '/',
+        search: {
+          search: record.value,
+          segment: 'all',
+          autoRefresh: autoRefresh,
+          interval: refreshInterval
+        }
+      });
     }
-  };
+  }
 
-  const handleRefresh = () => {
+  function handleLeaseIpClick(ip: string) {
+    // Switch to zones view and search for this IP
+    navigate({
+      to: '/zones',
+      search: {
+        search: ip,
+        zone: 'all',
+        autoRefresh: autoRefresh,
+        interval: refreshInterval
+      }
+    });
+  }
+
+  function handleLeaseHostnameClick(hostname: string) {
+    // Switch to zones view and search for this hostname
+    navigate({
+      to: '/zones',
+      search: {
+        search: hostname,
+        zone: 'all',
+        autoRefresh: autoRefresh,
+        interval: refreshInterval
+      }
+    });
+  }
+
+  function handleRefresh() {
     if (viewMode === "leases") {
       loadLeases();
     } else {
       loadZones();
     }
-  };
+  }
+
+  function handleSearchChange(search: string) {
+    const currentSearch = { ...searchParams };
+    if (search) {
+      currentSearch.search = search;
+    } else {
+      delete currentSearch.search;
+    }
+    navigate({ search: currentSearch });
+  }
+
+  function handleAutoRefreshToggle() {
+    const currentSearch = { ...searchParams };
+    if (!autoRefresh) {
+      currentSearch.autoRefresh = 'true';
+      currentSearch.interval = String(refreshInterval);
+    } else {
+      delete currentSearch.autoRefresh;
+      delete currentSearch.interval;
+    }
+    navigate({ search: currentSearch });
+  }
+
+  function handleIntervalChange(interval: number) {
+    navigate({ search: { ...searchParams, interval: String(interval) } });
+  }
 
   return (
     <Layout>
@@ -171,7 +235,15 @@ function App() {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8 px-4" aria-label="Tabs">
               <button
-                onClick={() => setViewMode("leases")}
+                onClick={() => navigate({
+                  to: '/',
+                  search: {
+                    search: searchTerm,
+                    segment: 'all',
+                    autoRefresh: autoRefresh,
+                    interval: refreshInterval
+                  }
+                })}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   viewMode === "leases"
                     ? "border-blue-500 text-blue-600"
@@ -181,7 +253,15 @@ function App() {
                 DHCP Leases
               </button>
               <button
-                onClick={() => setViewMode("zones")}
+                onClick={() => navigate({
+                  to: '/zones',
+                  search: {
+                    search: zoneSearchTerm,
+                    zone: 'all',
+                    autoRefresh: autoRefresh,
+                    interval: refreshInterval
+                  }
+                })}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   viewMode === "zones"
                     ? "border-blue-500 text-blue-600"
@@ -222,7 +302,7 @@ function App() {
               </label>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  onClick={handleAutoRefreshToggle}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                     autoRefresh ? "bg-blue-600" : "bg-gray-200"
                   }`}
@@ -236,7 +316,7 @@ function App() {
                 {autoRefresh && (
                   <select
                     value={refreshInterval}
-                    onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                    onChange={(e) => handleIntervalChange(Number(e.target.value))}
                     className="block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                   >
                     <option value={10}>10s</option>
@@ -276,16 +356,44 @@ function App() {
 
         {/* Search/Filters */}
         {viewMode === "leases" ? (
-          <LeaseFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <LeaseFilters searchTerm={searchTerm} onSearchChange={handleSearchChange} />
+            </div>
+            {searchTerm && (
+              <button
+                onClick={() => handleSearchChange("")}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear
+              </button>
+            )}
+          </div>
         ) : (
-          <div className="bg-white rounded-lg shadow p-4">
-            <input
-              type="text"
-              placeholder="Search zones by name, type, or value..."
-              value={zoneSearchTerm}
-              onChange={(e) => setZoneSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-            />
+          <div className="flex gap-2">
+            <div className="flex-1 bg-white rounded-lg shadow p-4">
+              <input
+                type="text"
+                placeholder="Search zones by name, type, or value..."
+                value={zoneSearchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            {zoneSearchTerm && (
+              <button
+                onClick={() => handleSearchChange("")}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 flex items-center gap-2 self-center"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear
+              </button>
+            )}
           </div>
         )}
 
@@ -298,7 +406,11 @@ function App() {
 
         {/* Content */}
         {viewMode === "leases" ? (
-          <LeaseTable leases={filteredLeases} />
+          <LeaseTable
+            leases={filteredLeases}
+            onIpClick={handleLeaseIpClick}
+            onHostnameClick={handleLeaseHostnameClick}
+          />
         ) : selectedZone === "all" ? (
           zones.map((zone) => (
             <ZoneTable

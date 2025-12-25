@@ -8,9 +8,11 @@ type SortDirection = "asc" | "desc";
 
 interface LeaseTableProps {
   leases: KeaLease[];
+  onIpClick?: (ip: string) => void;
+  onHostnameClick?: (hostname: string) => void;
 }
 
-export function LeaseTable({ leases }: LeaseTableProps) {
+export function LeaseTable({ leases, onIpClick, onHostnameClick }: LeaseTableProps) {
   const [sortField, setSortField] = useState<SortField>("added");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -258,13 +260,35 @@ export function LeaseTable({ leases }: LeaseTableProps) {
                     </td>
                   )}
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                    {lease["ip-address"]}
+                    {onIpClick ? (
+                      <button
+                        onClick={() => onIpClick(lease["ip-address"])}
+                        className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
+                        {lease["ip-address"]}
+                      </button>
+                    ) : (
+                      lease["ip-address"]
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
                     {lease["hw-address"]}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {lease.hostname || <span className="text-gray-400">-</span>}
+                    {lease.hostname ? (
+                      onHostnameClick ? (
+                        <button
+                          onClick={() => onHostnameClick(lease.hostname!)}
+                          className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                          {lease.hostname}
+                        </button>
+                      ) : (
+                        lease.hostname
+                      )
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {lease["subnet-id"]}
