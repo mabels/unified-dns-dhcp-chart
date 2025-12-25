@@ -36,6 +36,11 @@ spec:
             configMapKeyRef:
               name: looking-glass-config
               key: endpoints.json
+        - name: ZONE_ENDPOINTS
+          valueFrom:
+            configMapKeyRef:
+              name: looking-glass-config
+              key: zoneEndpoints.json
         {{- if .Values.lookingGlass.persistence.enabled }}
         - name: DB_PATH
           value: {{ .Values.lookingGlass.persistence.mountPath }}/leases.db

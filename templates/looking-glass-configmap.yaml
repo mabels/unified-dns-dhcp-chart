@@ -25,4 +25,25 @@ data:
     {{- $endpoints = append $endpoints (dict "name" (toString .name) "url" (printf "http://unified-dns-dhcp-%s-lg.%s.svc.cluster.local:8000" (toString .name) $.Values.global.namespace)) }}
     {{- end }}
     {{ toJson $endpoints }}
+  zoneEndpoints.json: |
+    {{- $zoneEndpoints := list }}
+    {{- $sourceSegments := .Values.lookingGlass.segments | default .Values.segments }}
+    {{- range $sourceSegments }}
+    {{- $zones := list }}
+    {{- if .zone }}
+    {{- if .zone.forward }}
+    {{- $zones = append $zones .zone.forward }}
+    {{- end }}
+    {{- if .zone.reverseV4 }}
+    {{- $zones = append $zones .zone.reverseV4 }}
+    {{- end }}
+    {{- if .zone.reverseV6 }}
+    {{- $zones = append $zones .zone.reverseV6 }}
+    {{- end }}
+    {{- end }}
+    {{- range $zones }}
+    {{- $zoneEndpoints = append $zoneEndpoints (dict "name" . "endpoint" (printf "dns://unified-dns-dhcp-%s-lg.%s.svc.cluster.local:5353" (toString $.name) $.Values.global.namespace)) }}
+    {{- end }}
+    {{- end }}
+    {{ toJson $zoneEndpoints }}
 {{- end }}

@@ -29,17 +29,26 @@ export interface KeaApiResult {
 }
 
 // Configuration types
-export interface EndpointConfig {
+export interface LeaseEndpointConfig {
   name: string
   url: string
 }
 
+export interface ZoneEndpointConfig {
+  name: string  // Zone name (e.g., "mam-hh-dmz.adviser.com")
+  endpoint: string  // DNS endpoint (e.g., "dns://unified-dns-dhcp-129-lg.dns-dhcp.svc.cluster.local:5353")
+}
+
 export interface Config {
   port: number
-  endpoints: EndpointConfig[]
+  endpoints: LeaseEndpointConfig[]
+  zoneEndpoints: ZoneEndpointConfig[]
   dbPath: string
   staticDir: string
 }
+
+// Keep backward compatibility
+export type EndpointConfig = LeaseEndpointConfig
 
 // Stored lease (database model)
 export interface StoredLease {
@@ -57,4 +66,18 @@ export interface StoredLease {
   clientId: string | null
   createdAt: Date
   updatedAt: Date
+}
+
+// DNS Zone types
+export interface DnsRecord {
+  name: string
+  type: string
+  ttl?: number
+  value: string
+}
+
+export interface ZoneData {
+  zone: string
+  records: DnsRecord[]
+  error?: string
 }

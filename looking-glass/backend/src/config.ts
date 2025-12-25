@@ -1,6 +1,6 @@
 // Configuration for the Looking Glass backend
 
-import type { Config, EndpointConfig } from './types.js'
+import type { Config, LeaseEndpointConfig, ZoneEndpointConfig } from './types.js'
 
 // Load configuration from environment variables
 export function loadConfig(): Config {
@@ -8,11 +8,11 @@ export function loadConfig(): Config {
   const dbPath = process.env.DB_PATH || './leases.db'
   const staticDir = process.env.STATIC_DIR || '../frontend/dist'
 
-  // Parse endpoints from environment variable (JSON array)
+  // Parse lease endpoints from environment variable (JSON array)
   // Format: ENDPOINTS='[{"name":"128","url":"http://localhost:8000"},{"name":"129","url":"http://localhost:8001"}]'
   const endpointsEnv = process.env.ENDPOINTS
 
-  let endpoints: EndpointConfig[] = []
+  let endpoints: LeaseEndpointConfig[] = []
 
   if (endpointsEnv) {
     try {
@@ -36,9 +36,28 @@ export function loadConfig(): Config {
     ]
   }
 
+  // Parse zone endpoints from environment variable (JSON array)
+  // Format: ZONE_ENDPOINTS='[{"name":"example.com","endpoint":"dns://dns-server:5353"}]'
+  const zoneEndpointsEnv = process.env.ZONE_ENDPOINTS
+
+  let zoneEndpoints: ZoneEndpointConfig[] = []
+
+  if (zoneEndpointsEnv) {
+    try {
+      const parsed = JSON.parse(zoneEndpointsEnv)
+      zoneEndpoints = parsed.map((e: any) => ({
+        name: e.name,
+        endpoint: e.endpoint,
+      }))
+    } catch (error) {
+      console.error('Failed to parse ZONE_ENDPOINTS environment variable:', error)
+    }
+  }
+
   return {
     port,
     endpoints,
+    zoneEndpoints,
     dbPath,
     staticDir,
   }

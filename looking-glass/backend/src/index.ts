@@ -9,6 +9,7 @@ import { loadConfig } from './config.js'
 import health from './routes/health.js'
 import segments from './routes/segments.js'
 import leases, { cleanupExpiredLeases } from './routes/leases.js'
+import zones from './routes/zones.js'
 
 const app = new Hono()
 const config = loadConfig()
@@ -16,8 +17,10 @@ const config = loadConfig()
 console.log('Looking Glass Backend starting...')
 console.log(`Port: ${config.port}`)
 console.log(`Database: ${config.dbPath}`)
-console.log(`Configured endpoints:`)
+console.log(`Configured lease endpoints:`)
 config.endpoints.forEach((e) => console.log(`  - ${e.name}: ${e.url}`))
+console.log(`Configured zone endpoints:`)
+config.zoneEndpoints.forEach((e) => console.log(`  - ${e.name}: ${e.endpoint}`))
 
 // Middleware - CORS
 app.use('/*', cors({
@@ -30,6 +33,7 @@ app.use('/*', cors({
 app.route('/api/health', health)
 app.route('/api/segments', segments)
 app.route('/api/leases', leases)
+app.route('/api/zones', zones)
 
 // Serve frontend static files (SPA mode)
 app.use('/*', serveStatic({

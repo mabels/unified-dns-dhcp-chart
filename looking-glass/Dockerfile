@@ -44,6 +44,9 @@ FROM node:22-alpine
 
 WORKDIR /app
 
+# Install dig utility (from bind-tools package)
+RUN apk add --no-cache bind-tools
+
 # Copy backend package files
 COPY backend/package*.json ./backend/
 

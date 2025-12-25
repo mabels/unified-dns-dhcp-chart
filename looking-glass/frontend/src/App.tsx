@@ -1,12 +1,18 @@
 import { useState, useEffect } from "react";
 import { Layout } from "./components/Layout";
 import { SegmentSelector } from "./components/SegmentSelector";
+import { ZoneSelector } from "./components/ZoneSelector";
 import { LeaseFilters } from "./components/LeaseFilters";
 import { LeaseTable } from "./components/LeaseTable";
-import { getAllLeases, getSegmentLeases, getSegments } from "./api/client";
+import { ZoneTable } from "./components/ZoneTable";
+import { getAllLeases, getSegmentLeases, getSegments, getAllZones } from "./api/client";
 import type { KeaLease, Segment } from "./types/lease";
+import type { ZoneData, DnsRecord } from "./types/zone";
+
+type ViewMode = "leases" | "zones";
 
 function App() {
+  const [viewMode, setViewMode] = useState<ViewMode>("leases");
   const [segments, setSegments] = useState<Segment[]>([]);
   const [selectedSegment, setSelectedSegment] = useState<Segment | "all">("all");
   const [leases, setLeases] = useState<KeaLease[]>([]);
@@ -16,6 +22,12 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(30);
+
+  // Zones state
+  const [zones, setZones] = useState<ZoneData[]>([]);
+  const [selectedZone, setSelectedZone] = useState<ZoneData | "all">("all");
+  const [filteredRecords, setFilteredRecords] = useState<DnsRecord[]>([]);
+  const [zoneSearchTerm, setZoneSearchTerm] = useState("");
 
   // Load segments on mount
   useEffect(() => {
@@ -47,21 +59,44 @@ function App() {
     }
   };
 
-  // Load leases when segment changes
+  // Load zones
+  const loadZones = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await getAllZones();
+      setZones(response.zones);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load zones");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load data when mode or selection changes
   useEffect(() => {
-    loadLeases();
-  }, [selectedSegment]);
+    if (viewMode === "leases") {
+      loadLeases();
+    } else {
+      loadZones();
+    }
+  }, [selectedSegment, viewMode]);
 
   // Auto-refresh
   useEffect(() => {
     if (!autoRefresh) return;
 
     const interval = setInterval(() => {
-      loadLeases();
+      if (viewMode === "leases") {
+        loadLeases();
+      } else {
+        loadZones();
+      }
     }, refreshInterval * 1000);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, refreshInterval, selectedSegment]);
+  }, [autoRefresh, refreshInterval, selectedSegment, viewMode]);
 
   // Filter leases based on search term
   useEffect(() => {
@@ -80,20 +115,105 @@ function App() {
     setFilteredLeases(filtered);
   }, [leases, searchTerm]);
 
+  // Filter zone records based on search term
+  useEffect(() => {
+    if (selectedZone === "all") {
+      const allRecords = zones.flatMap(z => z.records.map(r => ({ ...r, zone: z.zone })));
+      if (!zoneSearchTerm.trim()) {
+        setFilteredRecords(allRecords);
+        return;
+      }
+      const term = zoneSearchTerm.toLowerCase();
+      const filtered = allRecords.filter(
+        (record) =>
+          record.name.toLowerCase().includes(term) ||
+          record.type.toLowerCase().includes(term) ||
+          record.value.toLowerCase().includes(term)
+      );
+      setFilteredRecords(filtered);
+    } else {
+      if (!zoneSearchTerm.trim()) {
+        setFilteredRecords(selectedZone.records);
+        return;
+      }
+      const term = zoneSearchTerm.toLowerCase();
+      const filtered = selectedZone.records.filter(
+        (record) =>
+          record.name.toLowerCase().includes(term) ||
+          record.type.toLowerCase().includes(term) ||
+          record.value.toLowerCase().includes(term)
+      );
+      setFilteredRecords(filtered);
+    }
+  }, [zones, selectedZone, zoneSearchTerm]);
+
+  const handleRecordClick = (record: DnsRecord) => {
+    // If clicking on an IP, switch to leases view and filter by that IP
+    if (record.type === "A" || record.type === "AAAA") {
+      setViewMode("leases");
+      setSearchTerm(record.value);
+    }
+  };
+
+  const handleRefresh = () => {
+    if (viewMode === "leases") {
+      loadLeases();
+    } else {
+      loadZones();
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-4">
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8 px-4" aria-label="Tabs">
+              <button
+                onClick={() => setViewMode("leases")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  viewMode === "leases"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                DHCP Leases
+              </button>
+              <button
+                onClick={() => setViewMode("zones")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  viewMode === "zones"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                DNS Zones
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Controls */}
         <div className="bg-white rounded-lg shadow p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Segment
+                {viewMode === "leases" ? "Segment" : "Zone"}
               </label>
-              <SegmentSelector
-                segments={segments}
-                selected={selectedSegment}
-                onChange={setSelectedSegment}
-              />
+              {viewMode === "leases" ? (
+                <SegmentSelector
+                  segments={segments}
+                  selected={selectedSegment}
+                  onChange={setSelectedSegment}
+                />
+              ) : (
+                <ZoneSelector
+                  zones={zones}
+                  selected={selectedZone}
+                  onChange={setSelectedZone}
+                />
+              )}
             </div>
 
             <div>
@@ -129,7 +249,7 @@ function App() {
 
             <div className="flex items-end">
               <button
-                onClick={loadLeases}
+                onClick={handleRefresh}
                 disabled={loading}
                 className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
@@ -154,15 +274,55 @@ function App() {
           </div>
         </div>
 
-        <LeaseFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+        {/* Search/Filters */}
+        {viewMode === "leases" ? (
+          <LeaseFilters searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+        ) : (
+          <div className="bg-white rounded-lg shadow p-4">
+            <input
+              type="text"
+              placeholder="Search zones by name, type, or value..."
+              value={zoneSearchTerm}
+              onChange={(e) => setZoneSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        )}
 
+        {/* Error Display */}
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
             <p className="text-sm text-red-800">{error}</p>
           </div>
         )}
 
-        <LeaseTable leases={filteredLeases} />
+        {/* Content */}
+        {viewMode === "leases" ? (
+          <LeaseTable leases={filteredLeases} />
+        ) : selectedZone === "all" ? (
+          zones.map((zone) => (
+            <ZoneTable
+              key={zone.zone}
+              records={zone.records.filter(r => {
+                if (!zoneSearchTerm.trim()) return true;
+                const term = zoneSearchTerm.toLowerCase();
+                return (
+                  r.name.toLowerCase().includes(term) ||
+                  r.type.toLowerCase().includes(term) ||
+                  r.value.toLowerCase().includes(term)
+                );
+              })}
+              zoneName={zone.zone}
+              onRecordClick={handleRecordClick}
+            />
+          ))
+        ) : (
+          <ZoneTable
+            records={filteredRecords}
+            zoneName={selectedZone.zone}
+            onRecordClick={handleRecordClick}
+          />
+        )}
       </div>
     </Layout>
   );
