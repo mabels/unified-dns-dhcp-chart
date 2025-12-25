@@ -2,9 +2,42 @@
 
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import { IPAddress } from 'ipaddress'
 import type { ZoneData, DnsRecord } from '../types.js'
 
 const execAsync = promisify(exec)
+
+/**
+ * Convert reverse DNS name to forward IP address
+ * Handles both IPv4 (in-addr.arpa) and IPv6 (ip6.arpa)
+ */
+function reverseDnsToIp(reverseName: string): string | null {
+  try {
+    // Remove trailing dot if present
+    const name = reverseName.endsWith('.') ? reverseName.slice(0, -1) : reverseName
+
+    // IPv4: 100.129.168.192.in-addr.arpa -> 192.168.129.100
+    if (name.endsWith('.in-addr.arpa')) {
+      const octets = name.replace('.in-addr.arpa', '').split('.')
+      return octets.reverse().join('.')
+    }
+
+    // IPv6: *.ip6.arpa -> full IPv6
+    if (name.endsWith('.ip6.arpa')) {
+      const nibbles = name.replace('.ip6.arpa', '').split('.').reverse()
+      // Group into 4-character chunks and join with colons
+      const groups: string[] = []
+      for (let i = 0; i < nibbles.length; i += 4) {
+        groups.push(nibbles.slice(i, i + 4).join(''))
+      }
+      return groups.join(':')
+    }
+
+    return null
+  } catch (e) {
+    return null
+  }
+}
 
 /**
  * Parse DNS endpoint URL
@@ -59,12 +92,24 @@ function parseAxfrOutput(output: string, zoneName: string): DnsRecord[] {
       displayName = '@'
     }
 
-    records.push({
+    const record: DnsRecord = {
       name: displayName,
       type: recordType,
       ttl: isNaN(ttl) ? undefined : ttl,
       value,
-    })
+    }
+
+    // Add metadata for PTR records
+    if (recordType === 'PTR') {
+      const forwardIp = reverseDnsToIp(name)
+      if (forwardIp) {
+        record.forwardIp = forwardIp
+      }
+      // Store FQDN (remove trailing dot if present)
+      record.fqdn = value.endsWith('.') ? value.slice(0, -1) : value
+    }
+
+    records.push(record)
   }
 
   return records

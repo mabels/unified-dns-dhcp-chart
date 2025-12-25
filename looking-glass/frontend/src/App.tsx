@@ -9,6 +9,17 @@ import { ZoneTable } from "./components/ZoneTable";
 import { getAllLeases, getSegmentLeases, getSegments, getAllZones } from "./api/client";
 import type { KeaLease, Segment } from "./types/lease";
 import type { ZoneData, DnsRecord } from "./types/zone";
+import { IPAddress } from "ipaddress";
+
+// Helper function to convert IP address to reverse DNS format
+function ipToReverseDNS(ip: string): string | null {
+  try {
+    const addr = IPAddress.parse(ip);
+    return addr.dns_reverse();
+  } catch (e) {
+    return null;
+  }
+}
 
 function App() {
   const navigate = useNavigate();
@@ -129,11 +140,16 @@ function App() {
         return;
       }
       const term = zoneSearchTerm.toLowerCase();
+      // Try to convert search term to reverse DNS if it's an IP address
+      const reverseDNS = ipToReverseDNS(zoneSearchTerm);
       const filtered = allRecords.filter(
         (record) =>
           record.name.toLowerCase().includes(term) ||
           record.type.toLowerCase().includes(term) ||
-          record.value.toLowerCase().includes(term)
+          record.value.toLowerCase().includes(term) ||
+          (record.forwardIp && record.forwardIp.toLowerCase().includes(term)) ||
+          (record.fqdn && record.fqdn.toLowerCase().includes(term)) ||
+          (reverseDNS && record.name.toLowerCase().includes(reverseDNS.toLowerCase()))
       );
       setFilteredRecords(filtered);
     } else {
@@ -142,11 +158,16 @@ function App() {
         return;
       }
       const term = zoneSearchTerm.toLowerCase();
+      // Try to convert search term to reverse DNS if it's an IP address
+      const reverseDNS = ipToReverseDNS(zoneSearchTerm);
       const filtered = selectedZone.records.filter(
         (record) =>
           record.name.toLowerCase().includes(term) ||
           record.type.toLowerCase().includes(term) ||
-          record.value.toLowerCase().includes(term)
+          record.value.toLowerCase().includes(term) ||
+          (record.forwardIp && record.forwardIp.toLowerCase().includes(term)) ||
+          (record.fqdn && record.fqdn.toLowerCase().includes(term)) ||
+          (reverseDNS && record.name.toLowerCase().includes(reverseDNS.toLowerCase()))
       );
       setFilteredRecords(filtered);
     }
@@ -412,7 +433,9 @@ function App() {
             onHostnameClick={handleLeaseHostnameClick}
           />
         ) : selectedZone === "all" ? (
-          zones.map((zone) => (
+          zones.map((zone) => {
+            const reverseDNS = ipToReverseDNS(zoneSearchTerm);
+            return (
             <ZoneTable
               key={zone.zone}
               records={zone.records.filter(r => {
@@ -421,13 +444,17 @@ function App() {
                 return (
                   r.name.toLowerCase().includes(term) ||
                   r.type.toLowerCase().includes(term) ||
-                  r.value.toLowerCase().includes(term)
+                  r.value.toLowerCase().includes(term) ||
+                  (r.forwardIp && r.forwardIp.toLowerCase().includes(term)) ||
+                  (r.fqdn && r.fqdn.toLowerCase().includes(term)) ||
+                  (reverseDNS && r.name.toLowerCase().includes(reverseDNS.toLowerCase()))
                 );
               })}
               zoneName={zone.zone}
               onRecordClick={handleRecordClick}
             />
-          ))
+          );
+          })
         ) : (
           <ZoneTable
             records={filteredRecords}

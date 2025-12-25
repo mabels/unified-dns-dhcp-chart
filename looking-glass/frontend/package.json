@@ -16,6 +16,7 @@
     "@headlessui/react": "^2.2.9",
     "@tanstack/react-router": "^1.143.6",
     "date-fns": "^4.1.0",
+    "ipaddress": "^0.2.6",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },

@@ -5,6 +5,8 @@ export interface DnsRecord {
   type: string;
   ttl?: number;
   value: string;
+  forwardIp?: string;  // Forward IP for PTR records
+  fqdn?: string;       // FQDN for PTR records
 }
 
 export interface ZoneData {

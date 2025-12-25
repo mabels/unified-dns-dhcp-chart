@@ -74,6 +74,9 @@ export interface DnsRecord {
   type: string
   ttl?: number
   value: string
+  // Metadata for PTR records
+  forwardIp?: string  // Forward IP address (for PTR records)
+  fqdn?: string       // FQDN from PTR value
 }
 
 export interface ZoneData {
