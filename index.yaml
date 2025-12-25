@@ -3,10 +3,10 @@ entries:
   unified-dns-dhcp:
   - apiVersion: v2
     appVersion: "1.3"
-    created: "2025-12-25T10:02:33.574253465Z"
+    created: "2025-12-25T15:35:06.359206388Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
-    digest: c205fe85307781fe87132e278f482e6dd2e71dee4bde564609835a792089ce0c
+    digest: a2fb1b1c4a9e04b60c5b8916b169780dfe081f74a0927b81c524fce7da0b3f58
     home: https://github.com/mabels/unified-dns-dhcp-chart
     keywords:
     - dns
@@ -28,7 +28,7 @@ entries:
     version: 1.3.1
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2025-12-25T10:02:33.572873801Z"
+    created: "2025-12-25T15:35:06.357773801Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: ddbfcf28c1a9b179c70528a3a2ff44b22f814aa688faa09c261eaed3cbe7fba8
@@ -54,7 +54,7 @@ entries:
     version: 1.2.4
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2025-12-25T10:02:33.57145836Z"
+    created: "2025-12-25T15:35:06.355762808Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: ad7bacf533e5e13371ead7e79d8ad7db8a0873224ed9f6374386893a97bd2967
@@ -80,7 +80,7 @@ entries:
     version: 1.2.3
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2025-12-25T10:02:33.569541149Z"
+    created: "2025-12-25T15:35:06.354626012Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 20fb4e27d42a12db1d6abd81aac051f01a093ab13e9f794d298e226bcf8f1df2
@@ -106,7 +106,7 @@ entries:
     version: 1.2.2
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2025-12-25T10:02:33.568482408Z"
+    created: "2025-12-25T15:35:06.35359955Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 260fdd62cf24a8d10b65a8962e32a6a88f9adaa9aabf8b7e4ed931abee639afa
@@ -132,7 +132,7 @@ entries:
     version: 1.2.1
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2025-12-25T10:02:33.567465226Z"
+    created: "2025-12-25T15:35:06.352553295Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: e9971b6761c07f46d0dfa848fd91f2818a9b7fe92d09a142020d916e631845e5
@@ -158,7 +158,7 @@ entries:
     version: 1.2.0
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2025-12-25T10:02:33.566433917Z"
+    created: "2025-12-25T15:35:06.351491495Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: ba9c49ecaa929303e519237e55ead58a7257240d07c3470e844f145237e2c344
@@ -184,7 +184,7 @@ entries:
     version: 1.1.5
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2025-12-25T10:02:33.565389604Z"
+    created: "2025-12-25T15:35:06.350415915Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: f5385b011eb4f37650b4bddfc5dfb4cda9a2736e9c158eead66f8010f1aab888
@@ -210,7 +210,7 @@ entries:
     version: 1.1.4
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2025-12-25T10:02:33.564396437Z"
+    created: "2025-12-25T15:35:06.349334194Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 5abd4e2f26d4a466ea1609455b8ab09ec6168c0fa71a9e126ec3aa0f63b1f173
@@ -236,7 +236,7 @@ entries:
     version: 1.1.3
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2025-12-25T10:02:33.563147128Z"
+    created: "2025-12-25T15:35:06.347373864Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 56fe4d6df83bd21f3fc9f3f332f3dfaf5e1810d1a14b30504faf74727ac64012
@@ -262,7 +262,7 @@ entries:
     version: 1.1.2
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2025-12-25T10:02:33.56149932Z"
+    created: "2025-12-25T15:35:06.346362445Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: adf18ad780f14c84ccfd78f71aaced6e9b67f99e3d94931290cf53f05d8b3b84
@@ -288,7 +288,7 @@ entries:
     version: 1.1.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-25T10:02:33.560469124Z"
+    created: "2025-12-25T15:35:06.34530964Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: cb94cbf864b04d913f580a4325d5b90de7868fb7a6079fe81dffeb955cae2c3c
@@ -314,7 +314,7 @@ entries:
     version: 1.1.0
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-25T10:02:33.55942451Z"
+    created: "2025-12-25T15:35:06.344254322Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 209c85ff3d0be4a97f498a650315e93b12b0444721af4a94e661c90bc49130e0
@@ -325,7 +325,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-25T10:02:33.558856963Z"
+    created: "2025-12-25T15:35:06.343630378Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 849702a7f7464ef05dbc5f141d4410e30b844f69fd01be49742ffbf5ba2376ad
@@ -336,7 +336,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2025-12-25T10:02:33.558137821Z"
+    created: "2025-12-25T15:35:06.343029901Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 63b9ed133a971156a77dfdc323935ace7074c0fc03bac45487b6d5edc8cd2ca5
@@ -345,4 +345,4 @@ entries:
     urls:
     - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-1.0.0.tgz
     version: 1.0.0
-generated: "2025-12-25T10:02:33.557412357Z"
+generated: "2025-12-25T15:35:06.34223509Z"
