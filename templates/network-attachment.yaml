@@ -3,7 +3,7 @@
 apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
-  name: mam-hh-{{ .name }}
+  name: unified-dns-dhcp-{{ .name }}
   namespace: {{ $.Values.global.namespace }}
 spec:
   config: |
@@ -15,9 +15,12 @@ spec:
       "ipam": {
         "type": "static",
         "routes": [
-           {
-              "dst": "0.0.0.0/0", "gw": {{ .ipv4.gateway | quote }}
-           }
+          {
+            "dst": "0.0.0.0/0", "gw": {{ .ipv4.gateway | quote }}
+          },
+          {
+            "dst": "::/0", "gw": {{ .ipv6.gateway | quote }}
+          }
         ]
       }
     }

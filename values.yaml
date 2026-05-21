@@ -1,173 +1,82 @@
-# Global configuration
 global:
   namespace: dns-dhcp
-
-  # Image pull secrets for private registries (e.g., GitHub Container Registry)
-  # Create secret: kubectl create secret docker-registry ghcr-token \
-  #   --docker-server=ghcr.io \
-  #   --docker-username=YOUR_USERNAME \
-  #   --docker-password=YOUR_GITHUB_TOKEN \
-  #   --docker-email=YOUR_EMAIL \
-  #   -n dns-dhcp
-  imagePullSecrets: []
-  # imagePullSecrets:
-  #   - name: ghcr-token
-  
-  # Storage configuration
   storage:
     className: "local-path"
-  
-  # Recursive resolver (always runs if DNS enabled)
-  resolver:
-    type: unbound
-  
-  # Authoritative DNS for local zones
-  authDNS:
-    type: bind  # "bind" or "knot"
-    service: 127.0.0.1
-    port: 5353
-    # Networks allowed to perform zone transfers (AXFR)
-    # Only applicable when using knot as authDNS type
-    allowTransfer:
-      - "127.0.0.1"
-      - "10.0.0.0/8"
-  
-  # Container images
   images:
-    unbound: crazymax/unbound:latest
-    bind: ghcr.io/mabels/kea-dhcp-dns/bind9:latest
-    knot: cznic/knot:latest
-    keaDhcp: ghcr.io/mabels/kea-dhcp-dns:latest
-    keaDdns: ghcr.io/mabels/kea-dhcp-dns:latest
+    technitium: technitium/dns-server:latest
+    configurator: denoland/deno:alpine
+  # Technitium web UI admin password — change after first login
+  adminPassword: "admin"
+  # Hostname reported by Technitium as DNS_SERVER_DOMAIN (prefixed to the segment zone)
+  dnsHostname: "dns"
 
-# Service toggles (per segment)
+network:
+  podCIDR: "10.42.0.0/16"
+  serviceCIDR: "10.43.0.0/16"
+  podGateway: "10.42.0.1"
+
 services:
   dns:
     enabled: true
   dhcp:
     enabled: true
-  keaApi:
+  webui:
     enabled: true
-  knotAuth:
-    enabled: true  # Expose knot authoritative DNS port (5353) via service
+    port: 5380
 
-# Looking Glass - Web UI for viewing DHCP leases
-lookingGlass:
-  enabled: false  # Set to true to deploy the Looking Glass dashboard
-  replicas: 1
-  port: 3000
+nodeSelector: {}
+tolerations: []
 
-  # Docker image configuration
-  image:
-    repository: ghcr.io/mabels/kea-dhcp-dns/looking-glass
-    tag: latest
-    pullPolicy: IfNotPresent
+metrics:
+  enabled: true  # set false when no API token secret exists yet
 
-  # Persistent storage for SQLite database
-  persistence:
-    enabled: true
-    size: 1Gi
-    storageClassName: ""  # Use default if empty
-    mountPath: /data
-    # Database will be stored at /data/leases.db
-
-  # Resource limits
-  resources:
-    requests:
-      memory: 128Mi
-      cpu: 100m
-    limits:
-      memory: 256Mi
-      cpu: 200m
-
-  # Optional: Ingress configuration
-  ingress:
+queryLogs:
+  postgres:
     enabled: false
-    className: ""  # e.g., "nginx" or "traefik"
+    appUrl: "https://download.technitium.com/dns/apps/QueryLogsPostgreSqlApp-v1.2.zip"
+    connectionString: ""   # Host=...;Username=...;Password=...;  (must NOT include Database=)
+    databaseName: "technicum-logs"
+    maxLogDays: 0          # 0 = keep forever
+    maxLogRecords: 0       # 0 = keep forever
 
-    # Hosts for the ingress
-    hosts:
-      - looking-glass.example.com
-
-    # Annotations (e.g., for cert-manager)
-    annotations: {}
-      # cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      # external-dns.alpha.kubernetes.io/hostname: "looking-glass.example.com"
-
-    # TLS configuration
-    tls:
-      enabled: true
-
-    # Path configuration
-    path: /
-    pathType: Prefix
-
-  # Optional: Override segments list (defaults to all segments from .Values.segments)
-  # segments:
-  #   - name: "128"
-  #     namespace: dns-dhcp
-  #     statefulset: unified-dns-dhcp-128
-
-  # Optional: Explicit zones configuration with DNS endpoints
-  # If provided, this takes precedence over extracting zones from segments
-  # zones:
-  #   - name: example.com
-  #     endpoint: dns://unified-dns-dhcp-128-lg.dns-dhcp.svc.cluster.local:5353
-  #   - name: 128.168.192.in-addr.arpa
-  #     endpoint: dns://unified-dns-dhcp-128-lg.dns-dhcp.svc.cluster.local:5353
-
-# Network segments
-# Each segment gets its own StatefulSet with DNS/DHCP services
-# Leave empty (segments: []) when deploying only Stork Server
-segments:
-  - name: "128"
-    domain: seg128.local
-    
-    # IPv4 configuration
-    ipv4:
-      network: 192.168.128.0/24
-      dns: 192.168.128.5
-      dhcp: 192.168.128.5
-      gateway: 192.168.128.1
-      dhcpRange:
-        start: 192.168.128.100
-        end: 192.168.128.200
-    
-    # IPv6 configuration  
-    ipv6:
-      network: fd00:128::/64
-      dns: fd00:128::5
-      dhcp: fd00:128::5
-      gateway: fd00:128::1
-      dhcpRange:
-        start: fd00:128::1000
-        end: fd00:128::2000
-    
-    # Upstream DNS servers
-    upstream:
-      - 1.1.1.1
-      - 8.8.8.8
-    
-    # Optional: Override Stork Agent for this segment
-    # storkAgent:
-    #   enabled: false  # Disable agent for this specific segment
-
-
-# Network configuration for routing
-# These values depend on your Kubernetes cluster configuration
-network:
-  # Pod CIDR - pods are assigned IPs from this range
-  # K3s default: 10.42.0.0/16
-  # kubeadm default: 10.244.0.0/16
-  # GKE: 10.0.0.0/14
-  podCIDR: "10.42.0.0/16"
-  
-  # Service CIDR - cluster services get IPs from this range
-  # K3s default: 10.43.0.0/16
-  # kubeadm default: 10.96.0.0/12
-  # GKE: 10.4.0.0/14
-  serviceCIDR: "10.43.0.0/16"
-  
-  # Pod network gateway - first IP in the pod network
-  # Usually .1 of the pod network
-  podGateway: "10.42.0.1"
+# Network segments — one StatefulSet per segment
+segments: []
+# Example:
+# segments:
+#   - name: "130"
+#     zone:
+#       forward: "vlan130.example.com"
+#       reverseV4: "130.168.192.in-addr.arpa"
+#       reverseV6: "0.3.1.0.8.6.1.0.2.9.1.0.0.0.d.f.ip6.arpa"
+#     ipv4:
+#       subnet: "192.168.130.0/24"
+#       dns: "192.168.130.5"
+#       dhcp: "192.168.130.5"
+#       gateway: "192.168.130.1"
+#       range:
+#         start: "192.168.130.50"
+#         end: "192.168.130.200"
+#     ipv6:
+#       dns: "fd00:192:168:130::5"
+#       dhcp: "fd00:192:168:130::5"
+#       gateway: "fd00:192:168:130::1"
+#     network:
+#       attachment: "vlan.130"
+#     upstream:
+#       # protocol: Udp | Tcp | Tls | Https | HttpsJson | Quic
+#       protocol: Https
+#       nameServer: "doh.example.com"
+#       dohPath: "/dns-query"
+#     staticRecords:
+#       - hostname: "my-router"
+#         ipv4: "192.168.130.1"
+#         ipv6: "fd00:192:168:130::1"
+#     staticLeases:
+#       - hostname: "my-device"
+#         mac: "aa:bb:cc:dd:ee:ff"
+#         ipv4: "192.168.130.10"
+#     ingress:
+#       enabled: false
+#       host: "dns-130.example.com"
+#       path: "/tech/130"
+#       externalIP: "203.0.113.1"

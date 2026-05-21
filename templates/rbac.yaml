@@ -1,0 +1,45 @@
+{{- range .Values.segments }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: unified-dns-dhcp-{{ .name }}
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: unified-dns-dhcp
+    segment: "{{ .name }}"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: unified-dns-dhcp-{{ .name }}-secret-writer
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: unified-dns-dhcp
+    segment: "{{ .name }}"
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["unified-dns-dhcp-{{ .name }}-api-token"]
+    verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: unified-dns-dhcp-{{ .name }}-secret-writer
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: unified-dns-dhcp
+    segment: "{{ .name }}"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: unified-dns-dhcp-{{ .name }}-secret-writer
+subjects:
+  - kind: ServiceAccount
+    name: unified-dns-dhcp-{{ .name }}
+    namespace: {{ $.Values.global.namespace }}
+{{- end }}

@@ -5,6 +5,47 @@ All notable changes to the unified-dns-dhcp Helm chart will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-05-21
+
+### Changed — Breaking
+
+- **Complete stack replacement**: Kea DHCP, Knot DNS, Unbound, and BIND have been replaced with [Technitium DNS Server](https://technitium.com/dns/), which provides authoritative DNS, recursive resolution, and DHCP in a single container.
+- **StatefulSet structure**: One StatefulSet per network segment (unchanged), but now a single `technitium` container replaces the multi-container Kea/Knot/Unbound setup.
+- **Configuration model**: Zone records, DHCP scopes, static leases, and forwarders are no longer templated into ConfigMaps. All configuration is applied at runtime via the Technitium REST API by a Deno configurator sidecar.
+- **Network attachment**: Switched from `macvlan` to `ipvlan` (L2 mode) for Multus network attachment.
+- **`values.yaml` structure**: Completely rewritten. See `values.yaml` for the new schema.
+
+### Added
+
+- **Deno configurator sidecar** (`configure.ts`): Applies DNS zones, reverse zones, PTR records, DHCP scopes, static leases, upstream forwarders, and admin password via the Technitium API on every pod start. Idempotent — safe to run repeatedly.
+- **PostgreSQL query logging**: Optional `Query Logs (PostgreSQL)` app installation and configuration via the configurator. All segments share a single `technicum-logs` database; rows are distinguished by the `server` column.
+- **Service CIDR routing fix**: `init-routes` init container correctly installs the service CIDR route via the node-local pod gateway, enabling pods on dedicated nodes to reach ClusterIP services including CoreDNS and PostgreSQL.
+- **ConfigMap checksum annotations**: Pod template now includes `checksum/segment-config` and `checksum/configurator-script` annotations so `helm upgrade` automatically triggers a rolling restart when either ConfigMap changes.
+- **Ingress support** (`templates/ingress.yaml`): Optional per-segment ingress for the Technitium web UI.
+- **RBAC** (`templates/rbac.yaml`): ServiceAccount, Role, and RoleBinding per segment.
+- **Metrics sidecar**: Optional Prometheus exporter (`technitium-dns-prometheus-exporter`) for Technitium stats.
+
+### Removed
+
+- Kea DHCP4, Kea DHCP-DDNS, Knot DNS, Unbound, BIND9 containers and all associated ConfigMap templates.
+- `looking-glass/` web UI (Kea-specific).
+- `scripts/` backup and restore tooling (Kea/Knot-specific).
+- Stork monitoring integration.
+- DDNS persistence PVCs (`bind-cache`, `knot-storage`) — Technitium handles DDNS natively and persists state in its own PVC.
+- `values-segment-example.yaml` — replaced by per-segment `values-<name>.yaml` files (kept outside the chart, see `.gitignore`).
+
+### Migration Guide (from 1.x)
+
+This is a full stack replacement with no in-place upgrade path. The recommended migration is:
+
+1. Deploy the new chart as a separate Helm release alongside the existing one.
+2. Validate DNS and DHCP on the new stack.
+3. Decommission the old release and remove its PVCs once validated.
+
+The `kea` branch preserves the full 1.x chart for reference.
+
+---
+
 ## [1.1.0] - 2025-12-06
 
 ### Added
@@ -144,19 +185,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Per-segment configuration
 - StatefulSet-based deployment
 - Persistent storage for zones and leases
-
----
-
-## Unreleased
-
-### Planned
-
-- [ ] Prometheus metrics endpoint for Kea DHCP
-- [ ] Kea High Availability (HA) support
-- [ ] IPv6-only segment support
-- [ ] DHCP relay agent support
-- [ ] Advanced BIND/Knot zone management
-- [ ] Automated backup/restore for zones and leases
-- [ ] Health checks for DNS/DHCP services
-- [ ] Horizontal pod autoscaling (HPA) support
-- [ ] Custom resource definitions (CRDs) for easier management

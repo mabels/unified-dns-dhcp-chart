@@ -21,95 +21,207 @@ spec:
         app: unified-dns-dhcp
         segment: "{{ .name }}"
       annotations:
+        checksum/segment-config: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+        checksum/configurator-script: {{ $.Files.Get "configure.ts" | sha256sum }}
+        # Attach the ipvlan interface for the segment network
         k8s.v1.cni.cncf.io/networks: |
           [
             {
-              "name": "mam-hh-{{ .name }}",
+              "name": "unified-dns-dhcp-{{ .name }}",
               "ips": ["{{ .ipv4.dhcp }}/24", "{{ .ipv6.dhcp }}/64"]
             }
           ]
+        {{- if $.Values.metrics.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9105"
+        prometheus.io/path: "/metrics"
+        {{- end }}
     spec:
-      {{- if $.Values.global.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml $.Values.global.imagePullSecrets | nindent 8 }}
+      serviceAccountName: unified-dns-dhcp-{{ .name }}
+
+      {{- if $.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml $.Values.nodeSelector | nindent 8 }}
       {{- end }}
+      {{- if $.Values.tolerations }}
+      tolerations:
+        {{- toYaml $.Values.tolerations | nindent 8 }}
+      {{- end }}
+
       initContainers:
-      {{- include "containers.init.routes" (dict "network" $.Values.network) | nindent 6 }}
-      {{- if $.Values.services.dns.enabled }}
-      {{- include "containers.init.zones" . | nindent 6 }}
-      {{- if eq ($.Values.global.resolver.type | default "knot") "unbound" }}
-      {{- include "containers.init.unbound" (dict "images" $.Values.global.images) | nindent 6 }}
-      {{- end }}
-      {{- end }}
+        # Fix routing: keep pod network reachable via eth0 (metric 100),
+        # all segment traffic goes via net1 (the ipvlan interface).
+        - name: init-routes
+          image: busybox
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c"]
+          args:
+            - |
+              ip route del default via {{ $.Values.network.podGateway }} dev eth0 || true
+              ip route add default via {{ $.Values.network.podGateway }} dev eth0 metric 100
+              ip route add {{ $.Values.network.serviceCIDR }} via {{ $.Values.network.podGateway }} dev eth0 || true
+              echo "Routes configured:"
+              ip route
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]
+
       containers:
-      {{- if $.Values.services.dns.enabled }}
-      {{- if eq ($.Values.global.resolver.type | default "knot") "knot" }}
-      {{- include "containers.knot.resolver" (dict "images" $.Values.global.images) | nindent 6 }}
-      {{- else if eq $.Values.global.resolver.type "unbound" }}
-      {{- include "containers.unbound" (dict "images" $.Values.global.images) | nindent 6 }}
-      {{- end }}
+        # ----------------------------------------------------------------
+        # Main: Technitium DNS + DHCP server
+        # ----------------------------------------------------------------
+        - name: technitium
+          image: {{ $.Values.global.images.technitium }}
+          imagePullPolicy: IfNotPresent
 
-      {{- if eq ($.Values.global.authDNS.type | default "knot") "bind" }}
-      {{- include "containers.bind.auth" (dict "images" $.Values.global.images) | nindent 6 }}
-      {{- else }}
-      {{- include "containers.knot.auth" (dict "images" $.Values.global.images) | nindent 6 }}
-      {{- end }}
-      {{- end }}
+          env:
+            - name: ADMIN_PASSWORD
+              value: {{ $.Values.global.adminPassword | quote }}
+            # Technitium picks up DNS_SERVER_DOMAIN on first boot
+            - name: DNS_SERVER_DOMAIN
+              value: "{{ $.Values.global.dnsHostname | default "dns" }}.{{ .zone.forward }}"
+            - name: DNS_SERVER_LOCAL_END_POINTS
+              value: "0.0.0.0:53,[::]:53"
+            - name: DNS_SERVER_WEB_SERVICE_HTTP_PORT
+              value: {{ $.Values.services.webui.port | default 5380 | quote }}
 
-      {{- if $.Values.services.dhcp.enabled }}
-      {{- include "containers.kea.dhcp4" (dict "images" $.Values.global.images) | nindent 6 }}
-      {{- include "containers.kea.ddns" (dict "images" $.Values.global.images) | nindent 6 }}
-      {{- end }}
+          ports:
+            - name: dns-udp
+              containerPort: 53
+              protocol: UDP
+            - name: dns-tcp
+              containerPort: 53
+              protocol: TCP
+            {{- if $.Values.services.dhcp.enabled }}
+            - name: dhcp
+              containerPort: 67
+              protocol: UDP
+            {{- end }}
+            {{- if $.Values.services.webui.enabled }}
+            - name: webui
+              containerPort: {{ $.Values.services.webui.port | default 5380 }}
+              protocol: TCP
+            {{- end }}
+
+          securityContext:
+            capabilities:
+              add:
+                - NET_BIND_SERVICE  # bind port 53
+                - NET_ADMIN         # raw socket for DHCP broadcasts
+
+          readinessProbe:
+            httpGet:
+              path: /api/user/login
+              port: {{ $.Values.services.webui.port | default 5380 }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 6
+
+          livenessProbe:
+            httpGet:
+              path: /api/user/login
+              port: {{ $.Values.services.webui.port | default 5380 }}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+
+          volumeMounts:
+            - name: technitium-data
+              mountPath: /etc/dns
+
+        # ----------------------------------------------------------------
+        # Sidecar: Deno configurator — applies DNS/DHCP config on first boot
+        # then sleeps alongside the main container.
+        # ----------------------------------------------------------------
+        - name: configurator
+          image: {{ $.Values.global.images.configurator | default "denoland/deno:alpine" }}
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - deno
+            - run
+            - --allow-net
+            - --allow-read=/config
+            - --allow-env=ADMIN_PASSWORD,API_TOKEN
+            - /scripts/configure.ts
+
+          env:
+            - name: ADMIN_PASSWORD
+              value: {{ $.Values.global.adminPassword | quote }}
+            # Pre-created non-expiring API token — takes precedence over password login.
+            # Create once via: POST /api/user/createToken  (Technitium web UI or API).
+            # Then: kubectl create secret generic unified-dns-dhcp-{{ .name }}-api-token \
+            #         --from-literal=token=<value> -n {{ $.Values.global.namespace }}
+            - name: API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: unified-dns-dhcp-{{ .name }}-api-token
+                  key: token
+                  optional: true
+
+          volumeMounts:
+            # Segment data (Helm-generated JSON)
+            - name: segment-config
+              mountPath: /config
+              readOnly: true
+            # Shared configurator script (static TS)
+            - name: configurator-script
+              mountPath: /scripts
+              readOnly: true
+
+        # ----------------------------------------------------------------
+        # Sidecar: Prometheus metrics exporter (only when token secret exists)
+        # ----------------------------------------------------------------
+        {{- if $.Values.metrics.enabled }}
+        - name: metrics
+          image: ghcr.io/guycalledseven/technitium-dns-prometheus-exporter:latest
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: TECHNITIUM_BASE_URL
+              value: "http://127.0.0.1:5380"
+            - name: TECHNITIUM_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: unified-dns-dhcp-{{ .name }}-api-token
+                  key: token
+                  optional: true
+            - name: SERVER_LABEL
+              value: "{{ .name }}"
+            - name: EXPORTER_PORT
+              value: "9105"
+            - name: TECHNITIUM_STATS_RANGE
+              value: "LastHour"
+
+          ports:
+            - name: metrics
+              containerPort: 9105
+              protocol: TCP
+
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 9105
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+        {{- end }}
 
       volumes:
-      - name: config
-        configMap:
-          name: unified-dns-dhcp-{{ .name }}-config
-      {{- if and $.Values.services.dns.enabled (eq ($.Values.global.resolver.type | default "knot") "unbound") }}
-      - name: unbound-data
-        emptyDir: {}
-      {{- end }}
+        - name: segment-config
+          configMap:
+            name: unified-dns-dhcp-{{ .name }}-config
+        - name: configurator-script
+          configMap:
+            name: unified-dns-dhcp-configurator-script
+
   volumeClaimTemplates:
-  {{- if $.Values.services.dns.enabled }}
-  - metadata:
-      name: zones
-    spec:
-      {{- if $.Values.global.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml $.Values.global.imagePullSecrets | nindent 8 }}
-      {{- end }}
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: local-path
-      resources:
-        requests:
-          storage: 100Mi
-  {{- end }}
-  {{- if $.Values.services.dhcp.enabled }}
-  - metadata:
-      name: kea-leases
-    spec:
-      {{- if $.Values.global.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml $.Values.global.imagePullSecrets | nindent 8 }}
-      {{- end }}
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: local-path
-      resources:
-        requests:
-          storage: 100Mi
-  {{- end }}
-  {{- if and $.Values.stork.enabled $.Values.stork.agent.enabled }}
-  - metadata:
-      name: stork-agent-data
-    spec:
-      {{- if $.Values.global.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml $.Values.global.imagePullSecrets | nindent 8 }}
-      {{- end }}
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: local-path
-      resources:
-        requests:
-          storage: 10Mi
-  {{- end }}
+    - metadata:
+        name: technitium-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ $.Values.global.storage.className | default "local-path" }}
+        resources:
+          requests:
+            storage: 500Mi
 {{- end }}

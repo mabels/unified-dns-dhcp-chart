@@ -1,496 +1,272 @@
 # Unified DNS-DHCP Helm Chart
 
-Kubernetes Helm chart providing unified DNS and DHCP services for network segments with centralized Stork monitoring.
+Kubernetes Helm chart that runs [Technitium DNS Server](https://technitium.com/dns/) as a
+combined authoritative DNS, recursive resolver, and DHCP server — one StatefulSet per
+network segment.
 
-## Features
+## Why per-segment DNS servers?
 
-- **DNS Services**
-  - Unbound recursive resolver
-  - BIND9 or Knot authoritative DNS
-  - Dynamic DNS (DDNS) support
-  - DNSSEC support
-  - Journal file persistence
+A typical home or small-office network has a single uplink and a single DNS server.
+This chart is designed for a different scenario: **multiple network segments, each
+routing outbound traffic through a different uplink** — for example a dedicated VPN
+tunnel per segment.
 
-- **DHCP Services**
-  - Kea DHCP4 server
-  - Kea DHCP-DDNS integration
-  - IPv4 and IPv6 support
-  - Lease database persistence
-  - Host reservations
+In that setup a shared, cluster-wide DNS server cannot work correctly. When a client in
+segment A resolves `netflix.com`, the answer must be obtained through segment A's VPN
+tunnel — not through the host network — so that the geo-DNS response reflects the
+correct exit location. A DNS server that sits outside the segment's routing context will
+resolve through the wrong uplink and return addresses for the wrong region.
 
-- **Monitoring**
-  - ISC Stork centralized monitoring
-  - Real-time DHCP statistics
-  - DNS zone monitoring
-  - Split deployment architecture
-  - Web UI with Ingress support
+The solution is a **local DNS server per segment**, bound to that segment's IP and
+forwarding upstream through the same path as the segment's data traffic. This chart
+deploys exactly that: one Technitium instance per segment, configured with the correct
+upstream forwarder (protocol, nameserver, DoH path) for that segment's uplink.
 
-- **Architecture**
-  - Multi-segment support
-  - Separate server and segment deployments
-  - StatefulSet-based with persistent storage
-  - Multus network attachment support
-
-## Version
-
-- **Chart Version**: 1.1.0
-- **App Version**: 1.0
-- **Stork**: Latest
-- **BIND**: 9.x
-- **Knot**: 3.x
-- **Kea**: 2.x
-- **Unbound**: Latest
+DHCP is colocated in the same pod so that lease assignments and DNS registrations stay
+consistent within the segment, and because DHCP broadcasts are link-local — the server
+must be reachable on the same L2 network as the clients.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│  Stork Server (Deployed ONCE)          │
-│  ─────────────────────────────────────  │
-│  - Web UI (Ingress/Port-Forward)       │
-│  - PostgreSQL Backend                   │
-│  - Centralized Monitoring               │
-└─────────────────────────────────────────┘
-                    ▲
-                    │ Agent → Server (gRPC)
-         ┌──────────┴──────────┐
-         │                     │
-┌────────▼──────┐     ┌────────▼──────┐
-│ Segment 128   │     │ Segment 129   │
-│ ────────────  │     │ ────────────  │
-│ StatefulSet:  │     │ StatefulSet:  │
-│ - Unbound     │     │ - Unbound     │
-│ - BIND/Knot   │     │ - BIND/Knot   │
-│ - Kea DHCP    │     │ - Kea DHCP    │
-│ - Kea DDNS    │     │ - Kea DDNS    │
-│ - Stork Agent │     │ - Stork Agent │
-│               │     │               │
-│ PVCs:         │     │ PVCs:         │
-│ - zones       │     │ - zones       │
-│ - bind-cache  │     │ - bind-cache  │
-│ - kea-leases  │     │ - kea-leases  │
-└───────────────┘     └───────────────┘
+┌──────────────────────────┐   ┌──────────────────────────┐
+│  Segment A               │   │  Segment B               │
+│  StatefulSet             │   │  StatefulSet             │
+│  ─────────────────────── │   │  ─────────────────────── │
+│  technitium              │   │  technitium              │
+│    DNS  (53/udp+tcp)     │   │    DNS  (53/udp+tcp)     │
+│    DHCP (67/udp)         │   │    DHCP (67/udp)         │
+│    Web UI (5380/tcp)     │   │    Web UI (5380/tcp)     │
+│  configurator (Deno)     │   │  configurator (Deno)     │
+│  metrics (optional)      │   │  metrics (optional)      │
+│  ─────────────────────── │   │  ─────────────────────── │
+│  PVC: technitium-data    │   │  PVC: technitium-data    │
+│  ipvlan: <segment NIC>   │   │  ipvlan: <segment NIC>   │
+└──────────────────────────┘   └──────────────────────────┘
+           │                              │
+    upstream A (VPN / ISP)        upstream B (VPN / ISP)
 ```
+
+Each pod receives a secondary network interface via
+[Multus CNI](https://github.com/k8snetworkplumbingwg/multus-cni) + ipvlan (L2 mode)
+bound to the segment's physical or VLAN interface. This lets the pod source DNS queries
+and DHCP responses directly on that network, through that segment's routing context.
+
+### Configurator sidecar
+
+All DNS zones, reverse zones, PTR records, DHCP scopes, static leases, upstream
+forwarders, and app installations are applied at pod startup by a **Deno configurator
+sidecar** (`configure.ts`). The sidecar calls the Technitium REST API, waits for the
+server to become ready, and then applies the full desired state. The process is
+idempotent — running it again on an already-configured server is safe.
+
+This means there is no manual bootstrapping, no one-time setup script, and no state
+stored outside the Technitium data volume. A fresh pod (e.g. after a node failure or a
+PVC deletion) converges to the correct state automatically on startup.
+
+The configurator script is kept in a shared ConfigMap (`unified-dns-dhcp-configurator-script`)
+that is **not owned by any individual segment Helm release**, so it can be updated and
+reapplied across all segments in a single step without triggering a Helm upgrade.
+
+### Service CIDR routing
+
+Kubernetes pods on dedicated nodes (e.g. nodes with a `NoSchedule` taint for DNS
+workloads) may not have a route to the cluster's service CIDR by default, depending on
+the CNI setup. An `init-routes` init container installs the service CIDR route through
+the node-local pod gateway before any sidecar starts. This ensures the pod can reach
+ClusterIP services — CoreDNS, PostgreSQL, etc. — even when its default route exits
+through the segment's uplink rather than the cluster overlay.
+
+### ConfigMap checksum annotations
+
+The pod template carries `checksum/segment-config` and `checksum/configurator-script`
+annotations computed from the ConfigMap contents. `helm upgrade` therefore triggers an
+automatic rolling restart of affected StatefulSets whenever either ConfigMap changes —
+without needing a manual `kubectl rollout restart`.
+
+## Features
+
+- **DNS** — authoritative zones, recursive forwarding (UDP/TCP/DoT/DoH/QUIC), PTR records, reverse zones
+- **DHCP** — IPv4 scopes with lease ranges, static leases, IPv6 support
+- **Deno configurator sidecar** — applies full DNS/DHCP state via the Technitium REST API on every pod start; idempotent
+- **PostgreSQL query logging** — optional `Query Logs (PostgreSQL)` Technitium app; multiple segments share one database, rows are distinguished by the `server` column
+- **Prometheus metrics** — optional exporter sidecar (`technitium-dns-prometheus-exporter`)
+- **Ingress** — optional per-segment Technitium web UI exposure
+- **RBAC** — ServiceAccount, Role, and RoleBinding per segment
 
 ## Prerequisites
 
-1. **Kubernetes Cluster** (tested on K3s)
-2. **Multus CNI** (for multiple network interfaces)
-3. **PostgreSQL** (for Stork monitoring)
-4. **StorageClass** (e.g., local-path)
-5. **Optional**: cert-manager, external-dns for Ingress
+| Requirement | Notes |
+|---|---|
+| Kubernetes (tested on K3s) | |
+| [Multus CNI](https://github.com/k8snetworkplumbingwg/multus-cni) | secondary interfaces for segment NICs |
+| StorageClass | default: `local-path`; `local-path-retain` recommended for production |
+| PostgreSQL | optional, for DNS query logging |
 
 ## Quick Start
 
-### 1. Deploy PostgreSQL
+### 1. Apply the shared configurator ConfigMap
+
+The `configure.ts` script lives outside Helm's template directory so it can be updated
+independently of any segment release:
 
 ```bash
-cd ../postgresql
-./deploy.sh
+kubectl create configmap unified-dns-dhcp-configurator-script \
+  --from-file=configure.ts=configure.ts -n dns-dhcp \
+  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-### 2. Create Stork Database
+### 2. Create an API token secret (optional but recommended)
+
+A long-lived API token avoids password-based login in the configurator. Generate one
+via the Technitium web UI after first boot, then:
 
 ```bash
-cd ../postgresql
-./create-database.sh stork stork_user
-# Save the password!
+kubectl create secret generic unified-dns-dhcp-<segment>-api-token \
+  --from-literal=token=<value> -n dns-dhcp
 ```
 
-### 3. Create Database Secret
+The secret is optional (`optional: true` in the pod spec) — the configurator falls back
+to password auth if it is absent.
+
+### 3. Deploy a segment
 
 ```bash
-kubectl --context=mam-hh-dns1 create secret generic stork-db-credentials \
-  --from-literal=password='YOUR_STORK_PASSWORD' \
-  -n dns-dhcp
+helm upgrade --install my-segment . \
+  --namespace dns-dhcp --create-namespace \
+  --values values-my-segment.yaml
 ```
-
-### 4. Deploy Stork Server
-
-```bash
-cd ../unified-dns-dhcp
-./deploy-stork-server.sh
-```
-
-### 5. Deploy Segments
-
-```bash
-# Create segment configuration
-cp values-segment-example.yaml values-segment-128.yaml
-# Edit: segment name, IPs, domain, etc.
-
-# Deploy
-./deploy-segment.sh 128
-```
-
-### 6. Access Stork UI
-
-```bash
-kubectl --context=mam-hh-dns1 port-forward -n dns-dhcp svc/stork-server 8080:8080
-# Open: http://localhost:8080
-# Login: admin / admin
-```
-
-Or via Ingress: https://stork.example.com
-
-## Deployment Modes
-
-This chart supports two deployment modes:
-
-### Mode 1: Server-Only (Deploy Once)
-
-**Purpose**: Deploy Stork monitoring server
-
-**Command**:
-```bash
-helm upgrade --install stork-server . \
-  --namespace dns-dhcp \
-  --kube-context mam-hh-dns1 \
-  --values values-stork-server.yaml
-```
-
-**What deploys**:
-- Stork Server (Web UI)
-- Stork Service
-- Ingress (optional)
-- Database secret
-
-**What does NOT deploy**:
-- DNS/DHCP services
-- Segment StatefulSets
-- Stork Agents
-
-### Mode 2: Segment (Deploy Multiple Times)
-
-**Purpose**: Deploy DNS/DHCP services per network segment
-
-**Command**:
-```bash
-# Segment 128
-helm upgrade --install segment-128 . \
-  --namespace dns-dhcp \
-  --kube-context mam-hh-dns1 \
-  --values values-segment-128.yaml
-
-# Segment 129
-helm upgrade --install segment-129 . \
-  --namespace dns-dhcp \
-  --kube-context mam-hh-dns1 \
-  --values values-segment-129.yaml
-```
-
-**What deploys**:
-- StatefulSet (Unbound + BIND/Knot + Kea DHCP + DDNS + Stork Agent)
-- ConfigMap (segment config)
-- Service (DNS/DHCP)
-- PVCs (zones, bind-cache, kea-leases)
-
-**What does NOT deploy**:
-- Stork Server
-- Ingress
-
-See [DEPLOYMENT-MODES.md](DEPLOYMENT-MODES.md) for detailed guide.
 
 ## Configuration
 
-### Server Configuration
+All configuration lives in `values.yaml`. The `segments` list is empty by default — add
+one entry per segment you want to deploy.
 
-**values-stork-server.yaml**:
-```yaml
-stork:
-  enabled: true
-  server:
-    enabled: true
-    port: 8080
-    database:
-      host: postgresql.postgresql.svc.cluster.local
-      port: 5432
-      name: stork
-      user: stork_user
-      passwordSecret:
-        name: stork-db-credentials
-        key: password
-  
-  ingress:
-    enabled: true
-    className: "nginx"
-    hosts:
-      - stork.example.com
-    annotations:
-      cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      external-dns.alpha.kubernetes.io/hostname: "stork.example.com"
-    tls:
-      enabled: true
+### Minimal example
 
-segments: []  # No segments!
-```
-
-### Segment Configuration
-
-**values-segment-128.yaml**:
 ```yaml
 global:
   namespace: dns-dhcp
-  authDNS:
-    type: bind  # or "knot"
+  adminPassword: "changeme"
+  dnsHostname: "dns"          # prepended to zone name → DNS_SERVER_DOMAIN
 
-stork:
-  enabled: true
-  server:
-    enabled: false  # Server deployed separately
-  agent:
-    enabled: true   # Enable agent sidecar
+network:
+  serviceCIDR: "10.43.0.0/16"
+  podGateway: "10.42.X.1"    # node-local gateway — matches the pod subnet of the DNS node
 
 segments:
-  - name: "128"
-    domain: seg128.local
+  - name: "130"
+    zone:
+      forward: "vlan130.example.com"
+      reverseV4: "130.168.192.in-addr.arpa"
+      reverseV6: "0.3.1.0.8.6.1.0.2.9.1.0.0.0.d.f.ip6.arpa"
     ipv4:
-      network: 192.168.128.0/24
-      dns: 192.168.128.5
-      dhcp: 192.168.128.5
-      gateway: 192.168.128.1
-      dhcpRange:
-        start: 192.168.128.100
-        end: 192.168.128.200
+      subnet: "192.168.130.0/24"
+      dns:     "192.168.130.5"
+      dhcp:    "192.168.130.5"
+      gateway: "192.168.130.1"
+      range:
+        start: "192.168.130.50"
+        end:   "192.168.130.200"
     ipv6:
-      network: fd00:128::/64
-      dns: fd00:128::5
-      dhcp: fd00:128::5
-      gateway: fd00:128::1
-      dhcpRange:
-        start: fd00:128::1000
-        end: fd00:128::2000
+      dns:     "fd00:192:168:130::5"
+      dhcp:    "fd00:192:168:130::5"
+      gateway: "fd00:192:168:130::1"
+    network:
+      attachment: "vlan.130"      # host NIC or VLAN subinterface for Multus
     upstream:
-      - 1.1.1.1
-      - 8.8.8.8
+      # protocol: Udp | Tcp | Tls | Https | HttpsJson | Quic
+      protocol:   Https
+      nameServer: "doh.example.com"
+      dohPath:    "/dns-query"
+    staticRecords:
+      - hostname: "my-router"
+        ipv4: "192.168.130.1"
+        ipv6: "fd00:192:168:130::1"
+    staticLeases:
+      - hostname: "my-device"
+        mac:  "aa:bb:cc:dd:ee:ff"
+        ipv4: "192.168.130.10"
 ```
 
-## Ingress Configuration
+### PostgreSQL query logging
 
-### Example 1: cert-manager + external-dns
+Technitium's `Query Logs (PostgreSQL)` app is downloaded and configured automatically by
+the configurator when enabled. All segment servers can log to the same database; the
+`server` column distinguishes entries per instance.
 
 ```yaml
-stork:
-  ingress:
+queryLogs:
+  postgres:
     enabled: true
-    className: "nginx"
-    hosts:
-      - stork.mam-hh-dns1.example.com
-    annotations:
-      cert-manager.io/cluster-issuer: "letsencrypt-prod"
-      external-dns.alpha.kubernetes.io/hostname: "stork.mam-hh-dns1.example.com"
-    tls:
-      enabled: true  # Auto-generates: stork-mam-hh-dns1-abels-name
+    appUrl: "https://download.technitium.com/dns/apps/QueryLogsPostgreSqlApp-v1.2.zip"
+    connectionString: "Server=pg.example.com; Port=5432; Username=dns_logs; Password=secret;"
+    databaseName: "dns-logs"
+    maxLogDays: 0      # 0 = keep forever
+    maxLogRecords: 0   # 0 = keep forever
 ```
 
-### Example 2: Custom Annotations
+> **Note**: the `connectionString` must **not** include a `Database=` key — Technitium
+> reads the database name from the separate `databaseName` field.
+
+### Prometheus metrics
 
 ```yaml
-stork:
-  ingress:
-    enabled: true
-    className: "traefik"
-    hosts:
-      - stork.local
-    annotations:
-      traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-      traefik.ingress.kubernetes.io/router.tls: "true"
-    tls:
+metrics:
+  enabled: true   # deploys the metrics sidecar; requires the API token secret to exist
+```
+
+Prometheus scrape annotations (`prometheus.io/scrape`, `prometheus.io/port`,
+`prometheus.io/path`) are added to the pod automatically when metrics are enabled.
+
+### Node affinity / tolerations
+
+```yaml
+nodeSelector:
+  kubernetes.io/hostname: my-dns-node
+
+tolerations:
+  - key: dedicated
+    operator: Equal
+    value: my-dns-node
+    effect: NoSchedule
+```
+
+## Updating `configure.ts`
+
+The configurator script is shared across all segment releases via a single ConfigMap and
+is not owned by any individual Helm release. After editing `configure.ts`:
+
+```bash
+kubectl create configmap unified-dns-dhcp-configurator-script \
+  --from-file=configure.ts=configure.ts -n dns-dhcp \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl rollout restart statefulset -n dns-dhcp -l app=unified-dns-dhcp
+```
+
+## Accessing the Web UI
+
+```bash
+# Port-forward
+kubectl port-forward -n dns-dhcp statefulset/unified-dns-dhcp-130 5380:5380
+# http://localhost:5380
+```
+
+Or configure ingress per segment:
+
+```yaml
+    ingress:
       enabled: true
+      host: "dns-130.example.com"
+      path: "/"
+      externalIP: "203.0.113.1"
 ```
 
-### Example 3: Multiple Hosts
+## Changelog
 
-```yaml
-stork:
-  ingress:
-    enabled: true
-    hosts:
-      - stork.example.com
-      - monitor.example.com
-    tls:
-      enabled: true
-      # Auto-generates:
-      # - stork-example-com
-      # - monitor-example-com
-```
-
-## Storage
-
-### Persistent Volumes (per segment)
-
-| PVC | Size | Purpose |
-|-----|------|---------|
-| `zones` | 100Mi | Static zone files |
-| `bind-cache` | 200Mi | BIND journal files (.jnl), managed keys |
-| `knot-storage` | 200Mi | Knot journal, timers, KASP DB |
-| `kea-leases` | 100Mi | DHCP lease database |
-
-**DDNS Persistence**: Journal files persist across pod restarts! 🎉
-
-See [DDNS-PERSISTENCE.md](DDNS-PERSISTENCE.md) for details.
-
-## Monitoring
-
-### Stork Dashboard Features
-
-- **DHCP Statistics**
-  - Active leases (IPv4/IPv6)
-  - Pool utilization graphs
-  - Lease expiration timeline
-  - Host reservations
-
-- **DNS Monitoring**
-  - Zone information
-  - Query statistics
-  - DNSSEC status
-
-- **Server Health**
-  - All segments status
-  - Resource usage
-  - HA status (if configured)
-
-### Access Methods
-
-**Port-Forward**:
-```bash
-kubectl port-forward -n dns-dhcp svc/stork-server 8080:8080
-# http://localhost:8080
-```
-
-**Ingress**:
-```bash
-# https://stork.example.com
-```
-
-**Default Login**:
-- Username: `admin`
-- Password: `admin`
-- **Change immediately after first login!**
-
-## Deployment Scripts
-
-### Deploy Server
-
-```bash
-./deploy-stork-server.sh
-
-# With custom context/namespace
-KUBE_CONTEXT=my-cluster NAMESPACE=dns ./deploy-stork-server.sh
-```
-
-### Deploy Segment
-
-```bash
-./deploy-segment.sh 128 values-segment-128.yaml
-
-# Shorter (uses values-segment-128.yaml by default)
-./deploy-segment.sh 128
-```
-
-## Troubleshooting
-
-### Stork Server Not Starting
-
-**Check PostgreSQL**:
-```bash
-kubectl get statefulset -n postgresql postgresql
-```
-
-**Check Secret**:
-```bash
-kubectl get secret stork-db-credentials -n dns-dhcp
-```
-
-**Check Logs**:
-```bash
-kubectl logs -n dns-dhcp deployment/stork-server
-```
-
-### Agent Not Showing Up
-
-**Check Agent Logs**:
-```bash
-kubectl logs unified-dns-dhcp-128-0 -n dns-dhcp -c stork-agent
-```
-
-**Check Connectivity**:
-```bash
-kubectl exec -it unified-dns-dhcp-128-0 -n dns-dhcp -c stork-agent -- \
-  wget -O- http://stork-server:8080/api/version
-```
-
-### DDNS Updates Not Persisting
-
-**Check PVC**:
-```bash
-kubectl get pvc -n dns-dhcp | grep bind-cache
-```
-
-**Check Journal Files**:
-```bash
-kubectl exec unified-dns-dhcp-128-0 -n dns-dhcp -c bind -- \
-  ls -lah /var/cache/bind/dynamic/
-```
-
-See [DDNS-PERSISTENCE.md](DDNS-PERSISTENCE.md) for troubleshooting guide.
-
-## Upgrade
-
-### From 1.0.x → 1.1.0
-
-**No breaking changes!** All features are optional.
-
-**Steps**:
-
-1. Deploy Stork Server (optional):
-```bash
-helm upgrade --install stork-server . --values values-stork-server.yaml
-```
-
-2. Upgrade segments:
-```bash
-# Edit values: add stork.enabled: true, stork.agent.enabled: true
-helm upgrade segment-128 . --values values-segment-128.yaml
-```
-
-**Note**: First upgrade will lose existing DDNS records. Renew DHCP leases.
-
-## Files
-
-| File | Description |
-|------|-------------|
-| `Chart.yaml` | Chart metadata |
-| `values.yaml` | Default values (reference) |
-| `values-stork-server.yaml` | Server-only deployment |
-| `values-segment-example.yaml` | Segment template |
-| `templates/statefulset.yaml` | Segment pods |
-| `templates/stork-server.yaml` | Server deployment |
-| `templates/stork-ingress.yaml` | Ingress for Web UI |
-| `templates/configmaps.yaml` | DNS/DHCP configs |
-| `deploy-stork-server.sh` | Server deploy script |
-| `deploy-segment.sh` | Segment deploy script |
-
-## Documentation
-
-- [DEPLOYMENT-MODES.md](DEPLOYMENT-MODES.md) - Split deployment guide
-- [STORK-SETUP.md](STORK-SETUP.md) - Stork monitoring setup
-- [DDNS-PERSISTENCE.md](DDNS-PERSISTENCE.md) - DDNS journal persistence
-- [CHANGELOG.md](CHANGELOG.md) - Version history
-
-## Support
-
-- Issues: https://github.com/mabels/gw-to-earth-ng/issues
-- Email: admin@example.com
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-MIT License
-
-## Credits
-
-- **ISC Kea** - High-performance DHCP server
-- **ISC BIND** - DNS server
-- **CZ.NIC Knot** - Authoritative DNS
-- **NLnet Labs Unbound** - Recursive resolver
-- **ISC Stork** - DHCP/DNS monitoring
+Apache License 2.0 — see [LICENSE](LICENSE).

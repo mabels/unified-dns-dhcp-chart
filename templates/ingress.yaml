@@ -1,0 +1,53 @@
+{{- range .Values.segments }}
+{{- if .ingress.host }}
+{{- if and .ingress.path (ne .ingress.path "/") }}
+---
+# Strip path prefix before forwarding to Technitium web UI,
+# which serves all assets from root.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-tech-{{ .name }}
+  namespace: {{ $.Values.global.namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - {{ .ingress.path | quote }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: unified-dns-dhcp-{{ .name }}-ui
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: unified-dns-dhcp
+    segment: "{{ .name }}"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    external-dns.alpha.kubernetes.io/target: {{ .ingress.externalIP | quote }}
+    external-dns.alpha.kubernetes.io/ttl: "60"
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    {{- if and .ingress.path (ne .ingress.path "/") }}
+    traefik.ingress.kubernetes.io/router.middlewares: {{ $.Values.global.namespace }}-strip-tech-{{ .name }}@kubernetescrd
+    {{- end }}
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - {{ .ingress.host }}
+      secretName: {{ .ingress.host }}
+  rules:
+    - host: {{ .ingress.host }}
+      http:
+        paths:
+          - path: {{ .ingress.path }}
+            pathType: Prefix
+            backend:
+              service:
+                name: unified-dns-dhcp-{{ .name }}-api
+                port:
+                  number: 5380
+{{- end }}
+{{- end }}

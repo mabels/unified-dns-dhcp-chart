@@ -1,0 +1,62 @@
+{{- range .Values.segments }}
+{{- $seg := . }}
+---
+# Per-segment data ConfigMap — consumed by the Deno configurator sidecar.
+# Contains only values-derived data; all logic lives in configure.ts.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unified-dns-dhcp-{{ .name }}-config
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    app: unified-dns-dhcp
+    segment: "{{ .name }}"
+data:
+  segment.json: |
+    {
+      "name": "{{ .name }}",
+      "zone": {
+        "forward":   "{{ .zone.forward }}",
+        "reverseV4": "{{ .zone.reverseV4 }}",
+        "reverseV6": "{{ .zone.reverseV6 }}"
+      },
+      "ipv4": {
+        "subnet":  "{{ .ipv4.subnet }}",
+        "dns":     "{{ .ipv4.dns }}",
+        "dhcp":    "{{ .ipv4.dhcp }}",
+        "gateway": "{{ .ipv4.gateway }}"{{- if .ipv4.range }},
+        "range": {
+          "start": "{{ .ipv4.range.start }}",
+          "end":   "{{ .ipv4.range.end }}"
+        }
+        {{- end }}
+      },
+      "ipv6": {
+        "dns":     "{{ .ipv6.dns }}",
+        "dhcp":    "{{ .ipv6.dhcp }}",
+        "gateway": "{{ .ipv6.gateway }}"
+      },
+      {{- if .upstream }}
+      "upstream": {
+        "protocol":   "{{ .upstream.protocol }}",
+        "nameServer": "{{ .upstream.nameServer }}",
+        "dohPath":    "{{ .upstream.dohPath | default "/dns-query" }}"
+      },
+      {{- end }}
+      "staticRecords": {{ .staticRecords | default list | toJson }},
+      "staticLeases":  {{ .staticLeases  | default list | toJson }},
+      "queryLogs": {
+        "postgres": {
+          "enabled":          {{ $.Values.queryLogs.postgres.enabled | default false }},
+          "appUrl":           {{ $.Values.queryLogs.postgres.appUrl | default "https://download.technitium.com/dns/apps/QueryLogsPostgreSqlApp-v1.2.zip" | quote }},
+          "connectionString": {{ $.Values.queryLogs.postgres.connectionString | default "" | quote }},
+          "databaseName":     {{ $.Values.queryLogs.postgres.databaseName | default "technicum-logs" | quote }},
+          "maxLogDays":       {{ $.Values.queryLogs.postgres.maxLogDays | default 0 }},
+          "maxLogRecords":    {{ $.Values.queryLogs.postgres.maxLogRecords | default 0 }}
+        }
+      }
+    }
+{{- end }}
+# NOTE: unified-dns-dhcp-configurator-script is managed outside Helm to avoid
+# ownership conflicts across segment releases. Apply with:
+#   helm template . --show-only templates/configurator-script.yaml | kubectl apply -f -

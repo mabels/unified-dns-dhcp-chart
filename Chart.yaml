@@ -1,21 +1,10 @@
 apiVersion: v2
-name: unified-dns-dhcp
-description: Unified DNS and DHCP services for Kubernetes network segments with Stork monitoring
+name: unified-dns-dhcp-technicum
+description: >-
+  Technitium DNS Server with integrated DHCP for network segments.
+  Replaces the unbound + knot-auth + kea stack with a single container.
+  Supports DoH/DoT upstream forwarders by hostname, built-in DHCP with
+  ARP conflict detection, and automatic DDNS on lease assignment.
 type: application
-version: 1.3.1
-appVersion: "1.3"
-keywords:
-  - dns
-  - dhcp
-  - kea
-  - bind
-  - knot
-  - unbound
-  - networking
-maintainers:
-  - name: Meno Abels
-    email: meno.abels@adviser.com
-home: https://github.com/mabels/unified-dns-dhcp-chart
-sources:
-  - https://github.com/mabels/unified-dns-dhcp-chart
-dependencies: []
+version: 0.1.0
+appVersion: "13"

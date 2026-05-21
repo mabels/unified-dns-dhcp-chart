@@ -1,0 +1,10 @@
+# Site-specific values — contain passwords and deployment secrets
+values-*.yaml
+
+# Standalone manifests with hardcoded credentials or private infrastructure details
+telegraf-influx.yaml
+grafana-dns-dashboard.yaml
+STATE.md
+
+# Claude Code session files
+.claude/

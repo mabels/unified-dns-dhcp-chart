@@ -1,0 +1,25 @@
+# Shared ConfigMap for the Deno configurator script.
+# Applied independently of segment releases to avoid Helm ownership conflicts:
+#
+#   cd unified-dns-dhcp-technicum
+#   kubectl create configmap unified-dns-dhcp-configurator-script \
+#     --from-file=configure.ts=configure.ts -n dns-dhcp \
+#     --dry-run=client -o yaml | kubectl apply -f - --context gw-to-earth-ng
+#
+# After applying, restart affected pods:
+#   kubectl rollout restart statefulset -n dns-dhcp -l app=unified-dns-dhcp
+#
+# Re-run whenever configure.ts is updated.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unified-dns-dhcp-configurator-script
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: unified-dns-dhcp
+  annotations:
+    # Not managed by any individual segment Helm release.
+    helm.sh/resource-policy: keep
+data:
+  configure.ts: |
+{{ .Files.Get "configure.ts" | indent 4 }}
