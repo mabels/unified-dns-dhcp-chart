@@ -5,6 +5,17 @@ All notable changes to the unified-dns-dhcp Helm chart will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-05-21
+
+### Fixed
+
+- **IPv6 default route**: `init-routes` now deletes the ECMP default created by Multus and installs separate IPv6 defaults — `net1` (segment gateway) at metric 0 as primary, `eth0` (pod gateway) at metric 100 as fallback. Requires new `network.podGatewayV6` value.
+
+### Added
+
+- `network.podGatewayV6`: IPv6 address of the pod-network gateway on `eth0` (e.g. `fd00:10:42:1::1`). When set, IPv6 traffic defaults via `net1` so VPN segments get correct geo-DNS behaviour over IPv6.
+- `network.serviceCIDRv6`: Optional IPv6 service CIDR routed explicitly via `eth0` (cluster-internal services).
+
 ## [2.0.0] - 2026-05-21
 
 ### Changed — Breaking

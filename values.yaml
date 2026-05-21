@@ -14,6 +14,9 @@ network:
   podCIDR: "10.42.0.0/16"
   serviceCIDR: "10.43.0.0/16"
   podGateway: "10.42.0.1"
+  # IPv6 equivalents — set to enable proper IPv6 default routing via net1
+  podGatewayV6: ""       # e.g. "fd00:10:42:1::1"
+  serviceCIDRv6: ""      # e.g. "fd00:10:43::/112" — routed via eth0
 
 services:
   dns:

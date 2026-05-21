@@ -60,8 +60,17 @@ spec:
               ip route del default via {{ $.Values.network.podGateway }} dev eth0 || true
               ip route add default via {{ $.Values.network.podGateway }} dev eth0 metric 100
               ip route add {{ $.Values.network.serviceCIDR }} via {{ $.Values.network.podGateway }} dev eth0 || true
+              {{- if $.Values.network.podGatewayV6 }}
+              ip -6 route del default || true
+              ip -6 route add default via {{ .ipv6.gateway }} dev net1 metric 0 || true
+              ip -6 route add default via {{ $.Values.network.podGatewayV6 }} dev eth0 metric 100 || true
+              {{- if $.Values.network.serviceCIDRv6 }}
+              ip -6 route add {{ $.Values.network.serviceCIDRv6 }} via {{ $.Values.network.podGatewayV6 }} dev eth0 || true
+              {{- end }}
+              {{- end }}
               echo "Routes configured:"
               ip route
+              ip -6 route
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]
