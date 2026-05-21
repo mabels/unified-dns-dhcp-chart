@@ -6,5 +6,5 @@ description: >-
   Supports DoH/DoT upstream forwarders by hostname, built-in DHCP with
   ARP conflict detection, and automatic DDNS on lease assignment.
 type: application
-version: 2.1.0
+version: 2.1.1
 appVersion: "13"

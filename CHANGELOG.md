@@ -5,6 +5,12 @@ All notable changes to the unified-dns-dhcp Helm chart will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-05-22
+
+### Fixed
+
+- **IPv6 routing**: Also delete the kernel-auto-added `net1` default at metric 1024 before re-adding it at metric 10, so `net1` wins over `eth0` (metric 100) as intended.
+
 ## [2.1.0] - 2026-05-21
 
 ### Fixed
