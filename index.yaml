@@ -3,7 +3,7 @@ entries:
   unified-dns-dhcp:
   - apiVersion: v2
     appVersion: "1.3"
-    created: "2026-05-21T22:01:12.388487137Z"
+    created: "2026-05-21T22:05:49.938041905Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 18409dd2e0017476031700237af50cea9adfaf84f70b2f2e3814c31fe9c49f14
@@ -28,7 +28,7 @@ entries:
     version: 1.3.1
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2026-05-21T22:01:12.386960145Z"
+    created: "2026-05-21T22:05:49.935668371Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: ddbfcf28c1a9b179c70528a3a2ff44b22f814aa688faa09c261eaed3cbe7fba8
@@ -54,7 +54,7 @@ entries:
     version: 1.2.4
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2026-05-21T22:01:12.384703834Z"
+    created: "2026-05-21T22:05:49.934236335Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: ad7bacf533e5e13371ead7e79d8ad7db8a0873224ed9f6374386893a97bd2967
@@ -80,7 +80,7 @@ entries:
     version: 1.2.3
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2026-05-21T22:01:12.383616475Z"
+    created: "2026-05-21T22:05:49.933186472Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 20fb4e27d42a12db1d6abd81aac051f01a093ab13e9f794d298e226bcf8f1df2
@@ -106,7 +106,7 @@ entries:
     version: 1.2.2
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2026-05-21T22:01:12.382531149Z"
+    created: "2026-05-21T22:05:49.932102173Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 260fdd62cf24a8d10b65a8962e32a6a88f9adaa9aabf8b7e4ed931abee639afa
@@ -132,7 +132,7 @@ entries:
     version: 1.2.1
   - apiVersion: v2
     appVersion: "1.2"
-    created: "2026-05-21T22:01:12.381438542Z"
+    created: "2026-05-21T22:05:49.930963101Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: e9971b6761c07f46d0dfa848fd91f2818a9b7fe92d09a142020d916e631845e5
@@ -158,7 +158,7 @@ entries:
     version: 1.2.0
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2026-05-21T22:01:12.38036257Z"
+    created: "2026-05-21T22:05:49.929013246Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: ba9c49ecaa929303e519237e55ead58a7257240d07c3470e844f145237e2c344
@@ -184,7 +184,7 @@ entries:
     version: 1.1.5
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2026-05-21T22:01:12.379237334Z"
+    created: "2026-05-21T22:05:49.927963382Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: f5385b011eb4f37650b4bddfc5dfb4cda9a2736e9c158eead66f8010f1aab888
@@ -210,7 +210,7 @@ entries:
     version: 1.1.4
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2026-05-21T22:01:12.377479445Z"
+    created: "2026-05-21T22:05:49.926957692Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 5abd4e2f26d4a466ea1609455b8ab09ec6168c0fa71a9e126ec3aa0f63b1f173
@@ -236,7 +236,7 @@ entries:
     version: 1.1.3
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2026-05-21T22:01:12.376455952Z"
+    created: "2026-05-21T22:05:49.925939008Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: 56fe4d6df83bd21f3fc9f3f332f3dfaf5e1810d1a14b30504faf74727ac64012
@@ -262,7 +262,7 @@ entries:
     version: 1.1.2
   - apiVersion: v2
     appVersion: "1.1"
-    created: "2026-05-21T22:01:12.375357486Z"
+    created: "2026-05-21T22:05:49.9249189Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: adf18ad780f14c84ccfd78f71aaced6e9b67f99e3d94931290cf53f05d8b3b84
@@ -288,7 +288,7 @@ entries:
     version: 1.1.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2026-05-21T22:01:12.374262205Z"
+    created: "2026-05-21T22:05:49.923868535Z"
     description: Unified DNS and DHCP services for Kubernetes network segments with
       Stork monitoring
     digest: cb94cbf864b04d913f580a4325d5b90de7868fb7a6079fe81dffeb955cae2c3c
@@ -314,7 +314,7 @@ entries:
     version: 1.1.0
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2026-05-21T22:01:12.373147105Z"
+    created: "2026-05-21T22:05:49.922086419Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 209c85ff3d0be4a97f498a650315e93b12b0444721af4a94e661c90bc49130e0
@@ -325,7 +325,7 @@ entries:
     version: 1.0.2
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2026-05-21T22:01:12.37250035Z"
+    created: "2026-05-21T22:05:49.921095857Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 849702a7f7464ef05dbc5f141d4410e30b844f69fd01be49742ffbf5ba2376ad
@@ -336,7 +336,7 @@ entries:
     version: 1.0.1
   - apiVersion: v2
     appVersion: "1.0"
-    created: "2026-05-21T22:01:12.371786564Z"
+    created: "2026-05-21T22:05:49.920416584Z"
     description: Unified DNS forwarder, authoritative DNS, and DHCP server for network
       segments
     digest: 63b9ed133a971156a77dfdc323935ace7074c0fc03bac45487b6d5edc8cd2ca5
@@ -348,7 +348,20 @@ entries:
   unified-dns-dhcp-technicum:
   - apiVersion: v2
     appVersion: "13"
-    created: "2026-05-21T22:01:12.390623436Z"
+    created: "2026-05-21T22:05:49.94071733Z"
+    description: Technitium DNS Server with integrated DHCP for network segments.
+      Replaces the unbound + knot-auth + kea stack with a single container. Supports
+      DoH/DoT upstream forwarders by hostname, built-in DHCP with ARP conflict detection,
+      and automatic DDNS on lease assignment.
+    digest: 908ee684ad163b982d4c3584ad45b89469bc8e5a44e04128c9d1c947217d8bdc
+    name: unified-dns-dhcp-technicum
+    type: application
+    urls:
+    - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-technicum-2.1.1.tgz
+    version: 2.1.1
+  - apiVersion: v2
+    appVersion: "13"
+    created: "2026-05-21T22:05:49.940058215Z"
     description: Technitium DNS Server with integrated DHCP for network segments.
       Replaces the unbound + knot-auth + kea stack with a single container. Supports
       DoH/DoT upstream forwarders by hostname, built-in DHCP with ARP conflict detection,
@@ -361,7 +374,7 @@ entries:
     version: 2.1.0
   - apiVersion: v2
     appVersion: "13"
-    created: "2026-05-21T22:01:12.389969451Z"
+    created: "2026-05-21T22:05:49.939438083Z"
     description: Technitium DNS Server with integrated DHCP for network segments.
       Replaces the unbound + knot-auth + kea stack with a single container. Supports
       DoH/DoT upstream forwarders by hostname, built-in DHCP with ARP conflict detection,
@@ -374,7 +387,7 @@ entries:
     version: 2.0.0
   - apiVersion: v2
     appVersion: "13"
-    created: "2026-05-21T22:01:12.389227763Z"
+    created: "2026-05-21T22:05:49.938789658Z"
     description: Technitium DNS Server with integrated DHCP for network segments.
       Replaces the unbound + knot-auth + kea stack with a single container. Supports
       DoH/DoT upstream forwarders by hostname, built-in DHCP with ARP conflict detection,
@@ -385,4 +398,4 @@ entries:
     urls:
     - https://mabels.github.io/unified-dns-dhcp-chart/unified-dns-dhcp-technicum-0.1.0.tgz
     version: 0.1.0
-generated: "2026-05-21T22:01:12.370982011Z"
+generated: "2026-05-21T22:05:49.919685653Z"
