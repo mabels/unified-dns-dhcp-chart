@@ -216,6 +216,30 @@ spec:
             periodSeconds: 15
             failureThreshold: 3
         {{- end }}
+        # ----------------------------------------------------------------
+        # Sidecar: CT result relay — forwards port 4711 from the segment
+        # network to the result-server service inside the cluster.
+        # Gate: ctRelay.enabled (default false).
+        # The pod already owns 192.168.{seg}.5 via Multus ipvlan, so CT 104
+        # can reach this sidecar directly without any extra routing.
+        # ----------------------------------------------------------------
+        {{- if $.Values.ctRelay.enabled }}
+        - name: ct-relay
+          image: {{ $.Values.ctRelay.image | default "alpine/socat" }}
+          imagePullPolicy: IfNotPresent
+          {{- if $.Values.ctRelay.command }}
+          command: {{- toYaml $.Values.ctRelay.command | nindent 12 }}
+          {{- else }}
+          command:
+            - socat
+            - TCP-LISTEN:{{ $.Values.ctRelay.listenPort | default 4711 }},fork,reuseaddr
+            - TCP:{{ $.Values.ctRelay.resultServer }}
+          {{- end }}
+          ports:
+            - name: ct-relay
+              containerPort: {{ $.Values.ctRelay.listenPort | default 4711 }}
+              protocol: TCP
+        {{- end }}
 
       volumes:
         - name: segment-config

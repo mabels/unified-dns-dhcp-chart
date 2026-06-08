@@ -30,6 +30,19 @@ services:
 nodeSelector: {}
 tolerations: []
 
+ctRelay:
+  enabled: false
+  # Docker image for the relay sidecar.
+  # Default uses socat — override if a segment needs custom forwarding logic.
+  image: "alpine/socat"
+  # Internal DNS name and port of the result-server service.
+  resultServer: "segment-tester.dns-dhcp.svc:4711"
+  # Port the sidecar listens on (must match what CT 104 posts to).
+  listenPort: 4711
+  # Optional: fully override the container command.
+  # When unset the default socat TCP-LISTEN → TCP forward is used.
+  # command: []
+
 metrics:
   enabled: true  # set false when no API token secret exists yet
 
