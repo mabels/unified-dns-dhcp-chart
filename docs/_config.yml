@@ -1,0 +1,12 @@
+title: unified-dns-dhcp
+description: Write-ups on the unified-dns-dhcp Helm chart — Technitium DNS/DHCP per network segment.
+theme: minima
+
+# Keep default (non-pretty) permalinks: the write-ups embed images with plain
+# relative paths (e.g. diagram-dns-per-segment.svg next to the .md file).
+# Pretty permalinks would nest the built page in its own directory and break
+# those relative paths.
+
+exclude:
+  - Gemfile
+  - Gemfile.lock

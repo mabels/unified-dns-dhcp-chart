@@ -1,0 +1,52 @@
+<svg viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" role="img">
+  <title>Per-segment DNS, each resolving through its own uplink</title>
+  <desc>Two network segments, Local and US. Each has its own DNS/DHCP server at .5 inside the segment. The Local segment's DNS and traffic exit through the main WAN. The US segment's DNS and traffic exit through a WireGuard tunnel to a US exit, so DNS queries resolve as if physically in that region.</desc>
+
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#666666"/>
+    </marker>
+    <marker id="aa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4a86e8"/>
+    </marker>
+  </defs>
+
+  <g font-family="sans-serif">
+    <!-- Local segment -->
+    <rect x="60" y="40" width="260" height="230" rx="10" fill="none" stroke="#666666" stroke-dasharray="4,4"/>
+    <text x="190" y="30" text-anchor="middle" fill="#666666" font-size="12">segment: Local</text>
+
+    <rect x="120" y="80" width="140" height="56" rx="8" fill="#f3f3f3" stroke="#666666"/>
+    <text x="190" y="104" text-anchor="middle" fill="#000000" font-size="14" font-weight="600">dns-a</text>
+    <text x="190" y="122" text-anchor="middle" fill="#666666" font-size="11">.5 &#8212; DNS + DHCP</text>
+
+    <path d="M190,136 L190,190" fill="none" stroke="#666666" marker-end="url(#a)"/>
+
+    <rect x="110" y="196" width="160" height="50" rx="8" fill="#f3f3f3" stroke="#666666"/>
+    <text x="190" y="218" text-anchor="middle" fill="#000000" font-size="12" font-weight="600">Main WAN</text>
+    <text x="190" y="234" text-anchor="middle" fill="#666666" font-size="10">local exit</text>
+
+    <path d="M190,246 L190,270" fill="none" stroke="#666666" stroke-dasharray="2,3"/>
+    <text x="190" y="290" text-anchor="middle" fill="#666666" font-size="11">internet (local)</text>
+
+    <!-- US segment -->
+    <rect x="380" y="40" width="260" height="230" rx="10" fill="none" stroke="#666666" stroke-dasharray="4,4"/>
+    <text x="510" y="30" text-anchor="middle" fill="#666666" font-size="12">segment: US</text>
+
+    <rect x="440" y="80" width="140" height="56" rx="8" fill="#f3f3f3" stroke="#666666"/>
+    <text x="510" y="104" text-anchor="middle" fill="#000000" font-size="14" font-weight="600">dns-us</text>
+    <text x="510" y="122" text-anchor="middle" fill="#666666" font-size="11">.5 &#8212; DNS + DHCP</text>
+
+    <path d="M510,136 L510,190" fill="none" stroke="#4a86e8" marker-end="url(#aa)"/>
+
+    <rect x="425" y="196" width="170" height="50" rx="8" fill="#f3f3f3" stroke="#4a86e8" stroke-width="1.5"/>
+    <text x="510" y="216" text-anchor="middle" fill="#000000" font-size="12" font-weight="600">WireGuard</text>
+    <text x="510" y="232" text-anchor="middle" fill="#666666" font-size="10">US exit</text>
+
+    <path d="M510,246 L510,270" fill="none" stroke="#4a86e8" stroke-dasharray="2,3"/>
+    <text x="510" y="290" text-anchor="middle" fill="#666666" font-size="11">internet (US region)</text>
+
+    <text x="350" y="340" text-anchor="middle" fill="#666666" font-size="12">Each segment's DNS server resolves through that segment's own uplink &#8212;</text>
+    <text x="350" y="358" text-anchor="middle" fill="#666666" font-size="12">dns-us always answers as if it were physically in the US.</text>
+  </g>
+</svg>

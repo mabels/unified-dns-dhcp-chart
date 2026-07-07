@@ -263,6 +263,13 @@ Or configure ingress per segment:
       externalIP: "203.0.113.1"
 ```
 
+## Write-ups
+
+- [It's always DNS](docs/blog/its-always-dns.md) — the story behind this
+  chart: MikroTik/Pi-hole/DoH detours, the per-SSID region idea that broke
+  VRF-based DHCP, and landing on Technitium. Also published at
+  [mabels.github.io/unified-dns-dhcp-chart/writeups](https://mabels.github.io/unified-dns-dhcp-chart/writeups/).
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).

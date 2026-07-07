@@ -1,0 +1,61 @@
+# Builds docs/ (Jekyll) and publishes it into the EXISTING gh-pages branch,
+# under /writeups/ only. This repo's gh-pages branch already hosts the Helm
+# chart repository (index.yaml + *.tgz, published by release.yml) at
+# https://mabels.github.io/unified-dns-dhcp-chart/ — Pages is already live
+# there as a classic branch-based site. This workflow deliberately does NOT
+# use actions/deploy-pages or touch the repo's Pages source setting: doing
+# so would switch Pages away from gh-pages and take the Helm repo down.
+# Only the writeups/ subdirectory of gh-pages is ever written to.
+name: Publish blog to gh-pages (writeups/)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "Gemfile"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "gh-pages-writeups"
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@4a9ddd6f338a97768b8006bf671dfbad383215f4 # v1.207.0
+        with:
+          ruby-version: "3.1"
+          bundler-cache: true
+          cache-version: 0
+
+      - name: Build with Jekyll
+        run: bundle exec jekyll build --source docs --destination _site_build --baseurl "/unified-dns-dhcp-chart/writeups"
+        env:
+          JEKYLL_ENV: production
+
+      - name: Configure git identity
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Publish into gh-pages:/writeups/ only
+        run: |
+          git fetch origin gh-pages
+          git worktree add /tmp/gh-pages origin/gh-pages
+          rm -rf /tmp/gh-pages/writeups
+          mkdir -p /tmp/gh-pages/writeups
+          cp -r _site_build/. /tmp/gh-pages/writeups/
+          cd /tmp/gh-pages
+          git add writeups
+          git commit -m "Publish docs/ blog to writeups/ [skip ci]" || echo "No changes to commit"
+          git push origin HEAD:gh-pages
